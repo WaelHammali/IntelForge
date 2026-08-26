@@ -1,0 +1,18 @@
+# DAGDIG Configuration
+scan:
+  tcp_full: "-sS -sV -sC -p- --min-rate 1000 -T4"
+  udp_top: "-sU -sV --top-ports 200 --min-rate 500 -T4"
+  tcp_light: "-sS --top-ports 1000 --min-rate 5000 -T5"
+  udp_light: "-sU --top-ports 100 --min-rate 2000 -T5"
+
+wordlists:
+  directories: "common.txt"
+  subdomains: "subdomains-top1million-5000.txt"
+  vhosts: "vhosts.txt"
+  parameters: "parameters.txt"
+  extensions: "web-extensions.txt"
+
+output:
+  dir: "data/"
+  state_file: "data/state.json"
+  raw_dir: "data/raw/"

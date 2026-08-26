@@ -1,0 +1,36 @@
+# Virtual Environment
+venv/
+.venv/
+env/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Data
+data/state.json
+data/raw/*
+!data/raw/.gitkeep
+
+# Reports
+*.json
+*.xml
+*.txt
+
+# Environment
+.env
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
