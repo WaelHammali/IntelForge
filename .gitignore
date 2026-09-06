@@ -1,0 +1,42 @@
+# Virtual Environment
+venv/
+.venv/
+env/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Data
+dagdig/data/state.json
+dagdig/data/raw/*
+!dagdig/data/raw/.gitkeep
+
+# Wordlists — never commit wordlist files
+dagdig/wordlists/*
+!dagdig/wordlists/.gitkeep
+
+# Reports
+*.json
+*.xml
+*.txt
+!dagdig/prompts/*.txt
+
+# Environment
+.env
+dagdig/.env
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

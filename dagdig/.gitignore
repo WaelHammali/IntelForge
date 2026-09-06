@@ -16,6 +16,10 @@ data/state.json
 data/raw/*
 !data/raw/.gitkeep
 
+# Wordlists — never commit wordlist files (install locally via setup.sh)
+wordlists/*
+!wordlists/.gitkeep
+
 # Reports
 *.json
 *.xml

@@ -30,29 +30,43 @@ pip install --upgrade pip
 echo "[*] Installing dependencies..."
 pip install -r requirements.txt
 
+# Check system dependencies
+if ! command -v nmap &> /dev/null; then
+    echo "[!] Warning: 'nmap' is not installed or not in PATH."
+    echo "    Install with: sudo apt install -y nmap"
+fi
+
 # Create directories
 mkdir -p data/raw wordlists
 
-# Copy wordlists if they exist in /usr/share/wordlists/
+# Link system wordlists if available (saves disk space & keeps them updated)
 if [ -d /usr/share/wordlists ]; then
-    echo "[*] Copying wordlists from /usr/share/wordlists/..."
-    cp -rn /usr/share/wordlists/* wordlists/ 2>/dev/null || true
+    echo "[*] Symlinking system wordlists (/usr/share/wordlists)..."
+    ln -sfn /usr/share/wordlists/* wordlists/ 2>/dev/null || true
 fi
 
-# Copy from seclists if exists
 if [ -d /usr/share/seclists ]; then
-    echo "[*] Copying from /usr/share/seclists/..."
-    cp -rn /usr/share/seclists/* wordlists/ 2>/dev/null || true
+    echo "[*] Symlinking SecLists (/usr/share/seclists)..."
+    ln -sfn /usr/share/seclists wordlists/seclists 2>/dev/null || true
+fi
+
+if [ ! -d /usr/share/wordlists ] && [ ! -d /usr/share/seclists ]; then
+    echo "[i] System wordlists not found. Built-in fallbacks will be used."
+    echo "    For comprehensive wordlists, install via:"
+    echo "    sudo apt install -y seclists wordlists"
 fi
 
 # Create .env from example
 if [ ! -f .env ] && [ -f .env.example ]; then
     cp .env.example .env
-    echo "[!] Please edit .env with your API keys"
+    echo "[!] Please edit .env with your Groq API key (GROQ_API_KEY=gsk_...)"
 fi
 
 echo ""
 echo "[+] Setup complete!"
 echo ""
-echo "Run: python test.py"
-echo "Or:  python dagdig.py scan example.com"
+echo "Quick Start:"
+echo "  1. Set your Groq API key in .env"
+echo "  2. python dagdig.py scan <target_ip>"
+echo "  3. python dagdig.py webanalyze <url>"
+
