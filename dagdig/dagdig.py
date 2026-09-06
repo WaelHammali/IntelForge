@@ -13,7 +13,8 @@ from core.banner import (
     W, G, Y, R, C, DIM, RST
 )
 from exec.runner import DiscoveryRunner
-from llm import GroqClient, DualGroqAnalyzer
+from llm import GroqClient, DualGroqAnalyzer, TripleGroqAnalyzer
+from attack import WebAttackAdvisor
 
 try:
     import readline
@@ -55,18 +56,19 @@ def start_shell(state: StateManager):
         elif cmd in ("help", "?"):
             print(f"\n{W}Core Commands{RST}")
             print(f"{DIM}============={RST}\n")
-            print(f"  {C}Command{RST}             {C}Description{RST}")
-            print(f"  {DIM}-------             -----------{RST}")
-            print(f"  {G}use <target>{RST}        Set current target IP address or domain for session")
-            print(f"  {G}scan [target]{RST}       Run full reconnaissance scan (nmap + web fuzzing)")
-            print(f"  {G}show{RST}                Display current scan results in Unicode box tables")
-            print(f"  {G}analyze{RST}             Analyze target web pages using Dual-Groq AI pipeline")
-            print(f"  {G}set <field> <val>{RST}   Manually populate a state field/cell")
-            print(f"  {G}export [filename]{RST}   Export current scan state to JSON file")
-            print(f"  {G}clear / reset{RST}       Reset current target state")
-            print(f"  {G}banner{RST}              Display a new random ASCII banner")
-            print(f"  {G}help / ?{RST}            Display this help menu")
-            print(f"  {G}exit / quit{RST}         Exit DAGDIG console\n")
+            print(f"  {C}Command{RST}                   {C}Description{RST}")
+            print(f"  {DIM}-------                   -----------{RST}")
+            print(f"  {G}use <target>{RST}              Set current target IP address or domain for session")
+            print(f"  {G}scan [target]{RST}             Run full reconnaissance scan (nmap + web fuzzing)")
+            print(f"  {G}show{RST}                      Display current scan results in Unicode box tables")
+            print(f"  {G}analyze{RST}                   Basic Dual-Groq AI page analysis")
+            print(f"  {G}webanalyze [url]{RST}          {Y}3-Stage deep CTF recon: clean→intel→exploit research{RST}")
+            print(f"  {G}set <field> <val>{RST}         Manually populate a state field/cell")
+            print(f"  {G}export [filename]{RST}         Export current scan state to JSON file")
+            print(f"  {G}clear / reset{RST}             Reset current target state")
+            print(f"  {G}banner{RST}                    Display a new random ASCII banner")
+            print(f"  {G}help / ?{RST}                  Display this help menu")
+            print(f"  {G}exit / quit{RST}               Exit DAGDIG console\n")
 
         elif cmd == "banner":
             print_banner()
@@ -100,6 +102,10 @@ def start_shell(state: StateManager):
 
         elif cmd == "analyze":
             run_ai_analysis(state)
+
+        elif cmd == "webanalyze":
+            url_arg = args[1] if len(args) > 1 else None
+            run_web_analyze(state, url_arg)
 
         elif cmd == "set":
             if len(args) < 3:
@@ -264,11 +270,59 @@ def run_ai_analysis(state: StateManager):
     state.print_table()
 
 
+def run_web_analyze(state: StateManager, direct_url: str = None):
+    """
+    Run the full 3-stage WebAttackAdvisor pipeline.
+    If direct_url is given, analyse only that URL.
+    Otherwise, build the URL list from state (same as analyze command).
+    """
+    client = GroqClient()
+    if not client.is_configured():
+        print_warn("GROQ_API_KEY is missing or unconfigured!")
+        print_info("Set GROQ_API_KEY in your .env file or environment variable.")
+        return
+
+    urls_to_analyze: list[str] = []
+
+    if direct_url:
+        urls_to_analyze.append(direct_url)
+        # If a target is not yet set, derive it from the URL
+        if not state.data.target:
+            from urllib.parse import urlparse
+            parsed = urlparse(direct_url)
+            state.set_target(parsed.hostname or direct_url)
+    else:
+        if not state.data.target:
+            print_warn("No target set. Use 'use <ip>' or 'scan <ip>' first, or pass a URL directly: webanalyze <url>")
+            return
+
+        target = state.data.target
+        base_url = target if target.startswith('http') else f"http://{target}"
+        urls_to_analyze.append(base_url)
+        for d in state.data.directories:
+            clean_d = d.lstrip('/')
+            urls_to_analyze.append(f"{base_url}/{clean_d}")
+        for sub in state.data.subdomains + state.data.vhosts:
+            urls_to_analyze.append(f"http://{sub}")
+
+    advisor = WebAttackAdvisor(state)
+    advisor.run(urls=list(dict.fromkeys(urls_to_analyze)))  # deduplicate preserving order
+    state.print_table()
+
+
 @cli.command()
 @click.pass_context
 def analyze(ctx):
     """Analyze target web pages using Dual-Groq AI pipeline"""
     run_ai_analysis(ctx.obj['state'])
+
+
+@cli.command()
+@click.argument('url', required=False)
+@click.pass_context
+def webanalyze(ctx, url):
+    """3-Stage deep CTF web recon: clean → intel → exploit research → JSON report"""
+    run_web_analyze(ctx.obj['state'], url)
 
 
 if __name__ == '__main__':
