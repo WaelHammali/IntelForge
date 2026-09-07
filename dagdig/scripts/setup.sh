@@ -36,6 +36,11 @@ if ! command -v nmap &> /dev/null; then
     echo "    Install with: sudo apt install -y nmap"
 fi
 
+if ! command -v figlet &> /dev/null; then
+    echo "[!] Warning: 'figlet' is not installed or not in PATH."
+    echo "    Install with: sudo apt install -y figlet"
+fi
+
 # Create directories
 mkdir -p data/raw wordlists
 

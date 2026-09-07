@@ -148,6 +148,8 @@ def cli(ctx):
         else:
             print_banner()
             click.echo(ctx.get_help())
+    elif ctx.invoked_subcommand != "banner":
+        print_banner()
 
 
 @cli.command()

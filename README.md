@@ -52,6 +52,7 @@ DAGDIG is designed for Linux environments (Kali Linux, Parrot OS, Ubuntu/Debian)
 
 - **Python**: 3.10 or higher
 - **Nmap**: `sudo apt install -y nmap`
+- **Figlet**: `sudo apt install -y figlet` (for dynamic colored ASCII banners)
 - **Wordlists**: `seclists`, `dirb`, or `wordlists` package (optional, built-in fallbacks provided)
 - **Groq API Key**: Free API key from [Groq Console](https://console.groq.com) (provides ultra-low-latency Llama-3.3-70B inferences)
 
@@ -68,7 +69,7 @@ cd Pentest_Command_DAGDIG
 ### 2. Install System Tools & Wordlists (Recommended for Kali / Ubuntu)
 ```bash
 sudo apt update
-sudo apt install -y nmap seclists dirb wordlists
+sudo apt install -y nmap figlet seclists dirb wordlists
 ```
 
 ### 3. Run Automated Setup
