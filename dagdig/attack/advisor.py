@@ -95,16 +95,21 @@ class WebAttackAdvisor:
             return None
 
         try:
-            # Stage 1 + 2 + 3 via TripleGroqAnalyzer
+            # Stage 1: Cleaner AI
             self.tracker.advance(url, "clean")
             cleaned = self.analyzer.clean_page(raw_html)
 
+            # Stage 2: Analyst AI (Initial Extraction & Suspicious Items)
             self.tracker.advance(url, "intel")
             analysis = self.analyzer.analyze_page_deep(url, cleaned)
 
-            self.tracker.advance(url, "exploit")
+            # Stage 3: Researcher AI (DeepSeek R1 Vulnerability & Pentest Research)
+            self.tracker.advance(url, "research")
             exploit_report = self.analyzer.research_exploits(analysis)
-            analysis.exploit_report = exploit_report
+
+            # Stage 4: Analyst AI (Final Synthesis with Research Tuples)
+            self.tracker.advance(url, "synthesize")
+            analysis = self.analyzer.synthesize_final_report(analysis, exploit_report)
 
             self.tracker.complete(url)
             self._print_analysis_summary(analysis)
@@ -124,37 +129,47 @@ class WebAttackAdvisor:
             return None
 
     def _print_analysis_summary(self, analysis: PageAnalysis):
-        """Print a human-readable summary of the Stage 2 findings."""
+        """Print a human-readable summary of the findings and research tuples."""
         print(f"\n  {C}╔══ Analysis: {W}{analysis.url}{RST}")
-        print(f"  {C}║{RST}  Auth Level     : {Y}{analysis.auth_requirement}{RST}")
-        print(f"  {C}║{RST}  Technologies   : {', '.join(analysis.technologies) or DIM + 'None detected' + RST}")
+        print(f"  {C}║{RST}  Auth Level       : {Y}{analysis.auth_requirement}{RST}")
+        print(f"  {C}║{RST}  Technologies     : {', '.join(analysis.technologies) or DIM + 'None detected' + RST}")
 
         if analysis.bypass_paths:
-            print(f"  {C}║{RST}  Bypass Paths   : {G}{', '.join(analysis.bypass_paths)}{RST}")
+            print(f"  {C}║{RST}  Bypass Paths     : {G}{', '.join(analysis.bypass_paths)}{RST}")
 
         if analysis.auth_pages:
-            print(f"  {C}║{RST}  Auth Pages     : {Y}{', '.join(analysis.auth_pages)}{RST}")
+            print(f"  {C}║{RST}  Auth Pages       : {Y}{', '.join(analysis.auth_pages)}{RST}")
 
         if analysis.upload_points:
             pts = [f"{u.get('path','')} ({u.get('method','')})" for u in analysis.upload_points]
-            print(f"  {C}║{RST}  Upload Points  : {R}{', '.join(pts)}{RST}")
+            print(f"  {C}║{RST}  Upload Points    : {R}{', '.join(pts)}{RST}")
 
         if analysis.injectable_params:
             params = [f"{p.get('param','')} → {p.get('risk','')}" for p in analysis.injectable_params]
-            print(f"  {C}║{RST}  Injectable     : {R}{'; '.join(params)}{RST}")
+            print(f"  {C}║{RST}  Injectable       : {R}{'; '.join(params)}{RST}")
 
-        if analysis.keyword_fingerprints:
-            print(f"  {C}║{RST}  Fingerprints   : {W}{', '.join(analysis.keyword_fingerprints)}{RST}")
+        if analysis.suspicious_items:
+            print(f"  {C}║{RST}  Investigated Items: {W}{', '.join(analysis.suspicious_items[:5])}{RST}")
 
-        vectors = analysis.exploit_report.get('vectors', [])
-        if vectors:
-            print(f"  {C}║{RST}  Exploit Vectors: {R}{len(vectors)} found{RST}")
-            for v in vectors[:3]:  # preview first 3
-                cve = v.get('cve', 'N/A')
-                name = v.get('vulnerability_name', v.get('keyword', ''))
-                sev = v.get('severity', '')
+        tuples = analysis.research_tuples or analysis.exploit_report.get('research_tuples', []) or analysis.exploit_report.get('vectors', [])
+        if tuples:
+            print(f"  {C}║{RST}  Research Tuples  : {R}{len(tuples)} analyzed by DeepSeek{RST}")
+            for t in tuples[:4]:
+                kw = t.get('keyword', '')
+                cve = t.get('cve', 'N/A')
+                v_name = t.get('vulnerability_name', '')
+                sev = t.get('severity', '')
+                relevance = t.get('pentest_relevance', '')
                 sev_color = R if sev == "Critical" else Y if sev == "High" else W
-                print(f"  {C}║{RST}    {DIM}•{RST} {sev_color}[{sev}]{RST} {cve} — {name}")
+                print(f"  {C}║{RST}    {DIM}•{RST} {W}[{kw}]{RST} → {sev_color}[{sev}]{RST} {cve} ({v_name})")
+                if relevance:
+                    print(f"  {C}║{RST}      {DIM}↳ Pentest Angle: {relevance[:75]}...{RST}")
+
+        attack_order = analysis.exploit_report.get('recommended_attack_order', [])
+        if attack_order:
+            print(f"  {C}║{RST}  Attack Priority  :")
+            for step in attack_order[:3]:
+                print(f"  {C}║{RST}    {Y}▶{RST} {DIM}{step}{RST}")
 
         print(f"  {C}╚{'═' * 55}{RST}\n")
 

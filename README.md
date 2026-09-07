@@ -8,7 +8,7 @@
 
 **DAGDIG** is a reconnaissance and attack-path discovery tool designed to eliminate manual enumeration bottlenecks during penetration tests and CTF challenges.
 
-By integrating multi-threaded port discovery, web fuzzing, and a **Triple Groq LLM Intelligence Pipeline**, DAGDIG transitions seamlessly from raw port scans to actionable, high-priority exploitation avenues.
+By integrating multi-threaded port discovery, web fuzzing, and a **Triple Groq LLM Intelligence Pipeline** (featuring **DeepSeek R1** for exploit research), DAGDIG transitions seamlessly from raw port scans to actionable, high-priority exploitation avenues.
 
 ```
 +-------------------------------------------------------------------------------+
@@ -16,19 +16,20 @@ By integrating multi-threaded port discovery, web fuzzing, and a **Triple Groq L
 +-------------------------------------------------------------------------------+
 |  1. RECON          Nmap TCP/UDP Scans + Directory / Subdomain / Vhost Fuzzing |
 |        |                                                                      |
-|  2. STAGE 1 AI     Reconnaissance Synthesizer (Llama-3.3-70B via Groq)        |
+|  2. STAGE 1 AI     HTML Cleaner & Pre-Processor (noise reduction)             |
 |        |                                                                      |
-|  3. STAGE 2 AI     Deep Web Surface Parser & Parameter / Keyword Discovery   |
-|        |           - Bypass Paths (admin portals, unauthenticated endpoints)   |
-|        |           - Upload Points (webshell injection, mime-type bypasses)   |
-|        |           - Injectable Parameters (?id=, ?page=, LFI, SQLi, IDOR)    |
-|        |           - Keyword Indications & Version Fingerprints (e.g. chameleon)|
-|        |           - LLM Recon Paragraph for downstream AI agents             |
+|  3. STAGE 2 AI     Attack Surface Analyst (Initial Signal & Suspicious Items) |
+|        |           - Maps bypass paths, upload points, injectable parameters  |
+|        |           - Extracts suspicious items & keywords that induce doubt   |
 |        |                                                                      |
-|  4. STAGE 3 AI     Automated Exploit & CVE Research (Actionable Attack Plan)  |
-|        |           - Exact CVE IDs, PoC payloads, tools & attack execution order|
+|  4. STAGE 3 AI     Exploit Researcher (DeepSeek R1 Reasoning)                 |
+|        |           - Deep searches CVEs, affected versions, attack types      |
+|        |           - Determines pentest relevance & generates research tuples |
+|        |                                                                      |
+|  5. STAGE 4 AI     Analyst Intelligence Synthesis                             |
+|        |           - Ingests research tuples to produce final attack plan     |
 |        V                                                                      |
-|  5. OUTPUT         State JSON + Exploit Intelligence Plan (`data/exploit_*.json`)|
+|  6. OUTPUT         State JSON + Exploit Intelligence Plan (`data/exploit_*.json`)|
 +-------------------------------------------------------------------------------+
 ```
 
@@ -38,10 +39,11 @@ By integrating multi-threaded port discovery, web fuzzing, and a **Triple Groq L
 
 - 🎯 **Network Reconnaissance**: Fast TCP & UDP port discovery using `nmap`, service banner grabbing, and OS fingerprinting.
 - 🔍 **Web Surface Discovery**: Parallel directory fuzzing, virtual host identification, and endpoint mapping.
-- 🧠 **Triple Groq LLM Intelligence**:
-  - **Stage 1 — Recon Synthesis**: Summarizes open ports, service versions, and vulnerabilities.
-  - **Stage 2 — Attack Surface & Keyword Fingerprinting**: Fetches and cleans target pages (stripping noise), maps bypass paths, authentication portals, file upload vectors, query parameters susceptible to manipulation, and subtle page hints (e.g. internal keywords, themes, specific technologies).
-  - **Stage 3 — Actionable Exploit Planner**: Cross-references findings against CVE databases and known exploits, recommends exact tools (`sqlmap`, `hydra`, `metasploit`, custom PoCs), payloads, and prioritizes the attack sequence.
+- 🧠 **Collaborative Multi-LLM Pipeline**:
+  - **Stage 1 — Cleaner**: Cleans raw HTML/cURL responses, extracting pure structured elements.
+  - **Stage 2 — Analyst (Discovery)**: Maps upload forms, query parameters, bypass endpoints, and extracts a dedicated list of suspicious items/keywords that raise doubt for attacks.
+  - **Stage 3 — Researcher (DeepSeek R1)**: Performs deep vulnerability research per item, evaluates pentest relevance, and returns structured `(keyword, findings)` tuples with exact PoC commands and CVEs.
+  - **Stage 4 — Analyst (Synthesis)**: Ingests the Researcher's tuples to weave a comprehensive, prioritized Exploit Action Plan.
 - 📊 **Dynamic State Management**: Centralized tracking across scans, instant tabular status display, and structured JSON export ready for hand-off to other tools or LLMs.
 
 ---

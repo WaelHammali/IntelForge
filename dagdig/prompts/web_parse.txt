@@ -59,15 +59,25 @@ You MUST respond ONLY with a valid JSON object matching EXACTLY this structure:
         "Gitea 1.12"
       ],
 
-      "llm_recon_paragraph": "Write a concise, information-dense paragraph (3-6 sentences) summarizing ALL security-relevant findings for this page. This paragraph will be fed to another AI model that will search the web for CVEs and exploitation techniques. Include: identified technologies and their versions, any keywords or product names found, upload/download endpoints, injectable parameters, authentication mechanism type, and any other anomalies. Be specific and technical."
+      "suspicious_items": [
+        "Chameleon theme",
+        "Werkzeug 2.0.1 debug mode",
+        "Upload endpoint accepting avatars without mime validation",
+        "Injectable parameter 'page' susceptible to LFI",
+        "Unauthenticated admin debug path /admin/debug.php",
+        "Weird base64 cookie session format"
+      ],
+
+      "llm_recon_paragraph": "Write a concise, information-dense paragraph (3-6 sentences) summarizing ALL security-relevant findings for this page. This paragraph will be fed to the Researcher AI model (DeepSeek R1) to search for CVEs, penetration testing techniques, and vulnerabilities. Include: identified technologies and their versions, any keywords, weird behaviors, or product names found, upload/download endpoints, injectable parameters, authentication mechanism type, and any other anomalies. Be specific and technical."
     }
   ]
 }
 
 RULES:
 1. Do NOT include markdown code fences (```json) — output pure JSON only.
-2. For bypass_paths: include any path that looks like it could be accessed without full authentication — admin panels (/admin, /manager, /dashboard), backup files (/.git, /backup, /config), API endpoints (/api/v1/users), debug pages (/debug, /phpinfo.php), etc.
-3. For keyword_fingerprints: extract ANY word that could be a software name, CMS, framework, version string, product name, or unusual term that might indicate a known vulnerability. Even single words like "Chameleon", "Bolt", "MantisBT" are valuable.
-4. For injectable_params: look at ALL URL parameters and form fields. Flag any that contain: id, user, page, file, path, token, redirect, cmd, exec, query, search, name, category.
-5. For upload_points: flag any form with enctype="multipart/form-data", any <input type="file">, any button labeled "Upload", "Import", "Attach", "Submit file", "Deploy", "Install".
-6. The llm_recon_paragraph MUST be written so another LLM can use it as a standalone search query to find exploits. It should read like a professional vulnerability assessment note.
+2. For suspicious_items: list ALL specific items, keywords, weird behaviors, suspicious parameters, unusual technology names, or clues that create a 'moment of doubt' or potential attack angle for a penetration tester. This list is directly given to the Researcher AI to investigate vulnerabilities and exploitation methods.
+3. For bypass_paths: include any path that looks like it could be accessed without full authentication — admin panels (/admin, /manager, /dashboard), backup files (/.git, /backup, /config), API endpoints (/api/v1/users), debug pages (/debug, /phpinfo.php), etc.
+4. For keyword_fingerprints: extract ANY word that could be a software name, CMS, framework, version string, product name, or unusual term that might indicate a known vulnerability.
+5. For injectable_params: look at ALL URL parameters and form fields. Flag any that contain: id, user, page, file, path, token, redirect, cmd, exec, query, search, name, category.
+6. For upload_points: flag any form with enctype="multipart/form-data", any <input type="file">, any button labeled "Upload", "Import", "Attach", "Submit file", "Deploy", "Install".
+7. The llm_recon_paragraph MUST be written so the Researcher LLM can use it as a rich vulnerability assessment context.

@@ -46,7 +46,7 @@ class TestDualGroqBridge(unittest.TestCase):
         mock_analyzer = MagicMock(spec=GroqClient)
         mock_researcher = MagicMock(spec=GroqClient)
 
-        # DeepSeek R1 outputs <think> reasoning blocks followed by JSON
+        # DeepSeek R1 outputs <think> reasoning blocks followed by JSON with research_tuples
         mock_researcher.chat_completion.return_value = """
         <think>
         Analyzing target keywords and CVEs...
@@ -56,16 +56,18 @@ class TestDualGroqBridge(unittest.TestCase):
         {
             "summary": "DeepSeek Exploit Research Analysis",
             "risk_level": "Critical",
-            "vectors": [
+            "research_tuples": [
                 {
-                    "title": "SQL Injection on id",
-                    "cve_id": "CVE-2023-XXXX",
-                    "severity": "Critical",
-                    "component": "PHP 8.0",
+                    "keyword": "id parameter",
+                    "cve": "CVE-2023-XXXX",
+                    "vulnerability_name": "SQL Injection on id",
+                    "pentest_relevance": "Direct database manipulation via id parameter",
                     "attack_type": "SQLi",
-                    "description": "Exploit id query param",
-                    "tools_recommended": ["sqlmap"],
-                    "poc_or_method": "sqlmap -u http://example.com/login?id=1 --dbs"
+                    "affected_versions": "all",
+                    "exploit_method": "sqlmap database dump",
+                    "tool": "sqlmap",
+                    "example_payload": "sqlmap -u http://example.com/login?id=1 --dbs",
+                    "severity": "Critical"
                 }
             ],
             "recommended_attack_order": ["1. Exploit SQLi via sqlmap"],
@@ -83,13 +85,85 @@ class TestDualGroqBridge(unittest.TestCase):
         pa = PageAnalysis(
             url="http://example.com/login",
             llm_recon_paragraph="Target uses PHP 8.0 with injectable param id.",
-            keyword_fingerprints=["PHP 8.0", "SQLi"]
+            keyword_fingerprints=["PHP 8.0"],
+            suspicious_items=["id parameter"]
         )
 
         report = analyzer.research_exploits(pa)
         self.assertEqual(report.get("risk_level"), "Critical")
-        self.assertEqual(len(report.get("vectors", [])), 1)
-        self.assertEqual(report["vectors"][0]["cve_id"], "CVE-2023-XXXX")
+        self.assertEqual(len(report.get("research_tuples", [])), 1)
+        self.assertEqual(report["research_tuples"][0]["cve"], "CVE-2023-XXXX")
+        self.assertEqual(report["research_tuples"][0]["pentest_relevance"], "Direct database manipulation via id parameter")
+
+    def test_full_collaborative_pipeline_run(self):
+        from llm.llm_bridge import TripleGroqAnalyzer
+        mock_cleaner = MagicMock(spec=GroqClient)
+        mock_analyzer = MagicMock(spec=GroqClient)
+        mock_researcher = MagicMock(spec=GroqClient)
+
+        # 1. Cleaner output
+        mock_cleaner.chat_completion.return_value = "Page Title: Dashboard\nForms: /upload"
+
+        # 2. Analyst initial output (returns suspicious_items)
+        mock_analyzer.chat_completion.side_effect = [
+            # First call: analyze_page_deep
+            """{
+                "pages": [{
+                    "url": "http://example.com/admin",
+                    "auth_requirement": "Public",
+                    "technologies": ["Werkzeug 2.0.1"],
+                    "summary": "Admin dashboard with upload",
+                    "suspicious_items": ["Werkzeug 2.0.1 debug console", "avatar upload without validation"],
+                    "keyword_fingerprints": ["Werkzeug 2.0.1"],
+                    "llm_recon_paragraph": "Admin panel exposed with Werkzeug 2.0.1 and file upload."
+                }]
+            }""",
+            # Second call: synthesize_final_report
+            """{
+                "summary": "Critical Vulnerability: Werkzeug PIN exploit & Webshell upload confirmed.",
+                "synthesized_attack_surface": "Target exposes Werkzeug debug console allowing RCE via PIN exploit.",
+                "priority_exploit_vectors": [{
+                    "keyword": "Werkzeug 2.0.1 debug console",
+                    "actionable_exploit": "PIN bypass for interactive python RCE",
+                    "severity": "Critical"
+                }],
+                "final_verdict": "Vulnerable to immediate RCE"
+            }"""
+        ]
+
+        # 3. Researcher DeepSeek output (returns research_tuples)
+        mock_researcher.chat_completion.return_value = """{
+            "summary": "Critical vulnerabilities identified",
+            "risk_level": "Critical",
+            "research_tuples": [{
+                "keyword": "Werkzeug 2.0.1 debug console",
+                "cve": "CVE-2021-XXXX",
+                "vulnerability_name": "Werkzeug Debugger RCE",
+                "pentest_relevance": "Allows remote code execution if debug PIN is cracked or bypassed",
+                "attack_type": "RCE",
+                "affected_versions": "2.0.1",
+                "exploit_method": "Access /console and execute os.system()",
+                "tool": "curl / python",
+                "example_payload": "import os; os.system('id')",
+                "severity": "Critical"
+            }],
+            "recommended_attack_order": ["1. Exploit Werkzeug PIN console for RCE"]
+        }"""
+
+        analyzer = TripleGroqAnalyzer(
+            cleaner_client=mock_cleaner,
+            analyzer_client=mock_analyzer,
+            researcher_client=mock_researcher
+        )
+
+        result = analyzer.run_full_pipeline("http://example.com/admin", "<html>raw</html>")
+
+        self.assertEqual(result.url, "http://example.com/admin")
+        self.assertIn("Werkzeug 2.0.1", result.technologies)
+        self.assertEqual(len(result.suspicious_items), 2)
+        self.assertEqual(len(result.research_tuples), 1)
+        self.assertEqual(result.research_tuples[0]["attack_type"], "RCE")
+        self.assertIn("Werkzeug PIN exploit", result.summary)
 
 if __name__ == "__main__":
     unittest.main()

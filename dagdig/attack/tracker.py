@@ -15,12 +15,13 @@ R   = "\033[1;31m"
 DIM = "\033[2m"
 RST = "\033[0m"
 
-STAGES = ["fetch", "clean", "intel", "exploit"]
+STAGES = ["fetch", "clean", "intel", "research", "synthesize"]
 STAGE_LABELS = {
-    "fetch":   "Fetching HTML",
-    "clean":   "Stage 1 — HTML Cleaner",
-    "intel":   "Stage 2 — Recon Intelligence",
-    "exploit": "Stage 3 — Exploit Research",
+    "fetch":      "Fetching HTML",
+    "clean":      "Stage 1 — HTML Cleaner (Pre-process)",
+    "intel":      "Stage 2 — Attack Surface & Suspicious Items (Analyst)",
+    "research":   "Stage 3 — Deep Vulnerability Research & Tuples (DeepSeek R1)",
+    "synthesize": "Stage 4 — Final Intelligence Synthesis (Analyst)",
 }
 
 

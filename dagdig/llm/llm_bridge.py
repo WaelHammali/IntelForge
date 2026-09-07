@@ -32,9 +32,10 @@ CLEANER_SYSTEM_PROMPT = (
     "- Links, script src tags, and technical footprint hints (headers, comments, footer software names)."
 )
 
-# Stage 2 and Stage 3 prompts are loaded from files at runtime
+# Stage 2, Stage 3, and Synthesis prompts are loaded from files at runtime
 _WEB_PARSE_PROMPT: str = ""
 _EXPLOIT_RESEARCH_PROMPT: str = ""
+_ANALYST_SYNTHESIS_PROMPT: str = ""
 
 
 def _get_web_parse_prompt() -> str:
@@ -49,6 +50,13 @@ def _get_exploit_research_prompt() -> str:
     if not _EXPLOIT_RESEARCH_PROMPT:
         _EXPLOIT_RESEARCH_PROMPT = _load_prompt("exploit_research.txt")
     return _EXPLOIT_RESEARCH_PROMPT
+
+
+def _get_analyst_synthesis_prompt() -> str:
+    global _ANALYST_SYNTHESIS_PROMPT
+    if not _ANALYST_SYNTHESIS_PROMPT:
+        _ANALYST_SYNTHESIS_PROMPT = _load_prompt("analyst_synthesis.txt")
+    return _ANALYST_SYNTHESIS_PROMPT
 
 
 def _strip_json_fences(text: str) -> str:
@@ -176,12 +184,12 @@ class TripleGroqAnalyzer(DualGroqAnalyzer):
             model=model_3
         )
 
-    # ── Stage 2: Full intelligence extraction ─────────────────────────────────
+    # ── Stage 2: Initial Attack Surface & Suspicious Items Extraction ─────────
 
     def analyze_page_deep(self, url: str, cleaned_content: str) -> PageAnalysis:
         """
-        Stage 2 — Run full attack-surface intelligence extraction on a single cleaned page.
-        Returns a PageAnalysis with all new fields populated.
+        Stage 2 (Part 1) — Run attack-surface intelligence extraction and extract
+        suspicious items/keywords that raise doubt for penetration testing.
         """
         intelligence_prompt = _get_web_parse_prompt()
         prompt = f"--- URL: {url} ---\n{cleaned_content[:6000]}\n"
@@ -195,11 +203,14 @@ class TripleGroqAnalyzer(DualGroqAnalyzer):
             # The model may return a top-level object or a pages array
             pages = data.get('pages', [])
             if not pages and 'url' in data:
-                # Model returned a single page object directly
                 pages = [data]
 
             if pages:
                 p = pages[0]
+                suspicious = p.get('suspicious_items', [])
+                if not suspicious and p.get('keyword_fingerprints'):
+                    suspicious = list(p.get('keyword_fingerprints'))
+
                 return PageAnalysis(
                     url=p.get('url', url),
                     auth_requirement=p.get('auth_requirement', 'Public'),
@@ -212,6 +223,7 @@ class TripleGroqAnalyzer(DualGroqAnalyzer):
                     download_points=p.get('download_points', []),
                     injectable_params=p.get('injectable_params', []),
                     keyword_fingerprints=p.get('keyword_fingerprints', []),
+                    suspicious_items=suspicious,
                     llm_recon_paragraph=p.get('llm_recon_paragraph', ''),
                 )
         except Exception as e:
@@ -219,46 +231,54 @@ class TripleGroqAnalyzer(DualGroqAnalyzer):
 
         return PageAnalysis(url=url, summary="Stage 2 analysis failed.")
 
-    # ── Stage 3: Exploit research ─────────────────────────────────────────────
+    # ── Stage 3: Exploit Research & Tuple Generation (DeepSeek R1) ────────────
 
     def research_exploits(self, analysis: PageAnalysis) -> dict:
         """
-        Stage 3 — Given a PageAnalysis with a recon paragraph and keyword fingerprints,
-        query the research model to produce a structured CVE/technique/exploit report.
-        Returns the exploit_report dict.
+        Stage 3 — Given a PageAnalysis with suspicious items, keywords, and recon data,
+        query DeepSeek R1 to research vulnerabilities, CVEs, and pentest relevance.
+        Returns a dictionary containing `research_tuples`, `recommended_attack_order`, etc.
         """
-        if not analysis.llm_recon_paragraph and not analysis.keyword_fingerprints:
-            return {"summary": "No recon data available for research.", "vectors": []}
+        items_to_research = list(dict.fromkeys(analysis.suspicious_items + analysis.keyword_fingerprints))
+        if not items_to_research and not analysis.llm_recon_paragraph:
+            return {"summary": "No recon items available for research.", "research_tuples": [], "vectors": []}
 
         research_prompt = _get_exploit_research_prompt()
 
-        # Build a rich context paragraph for Stage 3
+        # Format context specifically emphasizing suspicious items to research
         context_parts = []
+        if items_to_research:
+            context_parts.append("Suspicious Items / Keywords to Investigate:")
+            for item in items_to_research:
+                context_parts.append(f"- {item}")
+            context_parts.append("")
+
         if analysis.llm_recon_paragraph:
-            context_parts.append(analysis.llm_recon_paragraph)
-        if analysis.keyword_fingerprints:
-            context_parts.append(
-                f"Key fingerprints identified: {', '.join(analysis.keyword_fingerprints)}"
-            )
+            context_parts.append(f"Analyst Recon Brief:\n{analysis.llm_recon_paragraph}")
+            context_parts.append("")
+
         if analysis.upload_points:
             upload_desc = "; ".join(
                 f"{u.get('path','')} [{u.get('method','')}]" for u in analysis.upload_points
             )
             context_parts.append(f"Upload endpoints: {upload_desc}")
+
         if analysis.injectable_params:
             param_desc = "; ".join(
                 f"{p.get('param','')} in {p.get('location','')} ({p.get('risk','')})"
                 for p in analysis.injectable_params
             )
             context_parts.append(f"Injectable parameters: {param_desc}")
+
         if analysis.technologies:
             context_parts.append(f"Technologies: {', '.join(analysis.technologies)}")
 
         full_context = "\n".join(context_parts)
         prompt = (
             f"Target URL: {analysis.url}\n\n"
-            f"Reconnaissance Summary:\n{full_context}\n\n"
-            "Produce the full exploit research report for this target."
+            f"{full_context}\n\n"
+            "Perform deep vulnerability and exploit research for every item. "
+            "Return the research_tuples and prioritized attack order."
         )
 
         try:
@@ -266,35 +286,96 @@ class TripleGroqAnalyzer(DualGroqAnalyzer):
                 research_prompt, prompt, temperature=0.2
             )
             report = json.loads(_strip_json_fences(response_text))
+            
+            # Normalize tuples / vectors for compatibility
+            tuples = report.get('research_tuples') or report.get('vectors') or []
+            report['research_tuples'] = tuples
+            report['vectors'] = tuples
             return report
         except Exception as e:
             print(f"[!] Stage 3 parse error for {analysis.url}: {e}")
             return {
                 "summary": f"Exploit research failed: {e}",
                 "risk_level": "Unknown",
+                "research_tuples": [],
                 "vectors": [],
                 "recommended_attack_order": [],
-                "notes": "Stage 3 LLM response could not be parsed as JSON."
+                "notes": "Stage 3 DeepSeek response could not be parsed as JSON."
             }
 
-    # ── Full pipeline ─────────────────────────────────────────────────────────
+    # ── Stage 4: Analyst Final Report Synthesis ───────────────────────────────
+
+    def synthesize_final_report(self, analysis: PageAnalysis, exploit_report: dict) -> PageAnalysis:
+        """
+        Stage 4 — The Analyst ingests the Researcher's list of tuples and findings
+        to synthesize the final, comprehensive security assessment.
+        """
+        tuples = exploit_report.get('research_tuples', [])
+        analysis.research_tuples = tuples
+        analysis.exploit_report = exploit_report
+
+        if not tuples and not exploit_report.get('summary'):
+            return analysis
+
+        synthesis_prompt = _get_analyst_synthesis_prompt()
+        
+        # Build synthesis prompt payload
+        prompt_data = {
+            "target_url": analysis.url,
+            "auth_requirement": analysis.auth_requirement,
+            "technologies": analysis.technologies,
+            "bypass_paths": analysis.bypass_paths,
+            "upload_points": analysis.upload_points,
+            "injectable_params": analysis.injectable_params,
+            "research_tuples_from_researcher": tuples,
+            "researcher_attack_order": exploit_report.get('recommended_attack_order', []),
+            "researcher_summary": exploit_report.get('summary', '')
+        }
+
+        try:
+            prompt_str = f"Target Reconnaissance & Research Findings:\n{json.dumps(prompt_data, indent=2)}\n\nProduce the final synthesized report."
+            response_text = self.analyzer_client.chat_completion(
+                synthesis_prompt, prompt_str, temperature=0.1
+            )
+            synth_data = json.loads(_strip_json_fences(response_text))
+
+            if synth_data.get('summary'):
+                analysis.summary = synth_data['summary']
+            if synth_data.get('synthesized_attack_surface'):
+                analysis.llm_recon_paragraph = synth_data['synthesized_attack_surface']
+            if synth_data.get('priority_exploit_vectors'):
+                analysis.exploit_report['priority_exploit_vectors'] = synth_data['priority_exploit_vectors']
+            if synth_data.get('final_verdict'):
+                analysis.exploit_report['final_verdict'] = synth_data['final_verdict']
+
+        except Exception as e:
+            # Fall back gracefully to the existing summary if synthesis fails
+            pass
+
+        return analysis
+
+    # ── Full Pipeline Execution ───────────────────────────────────────────────
 
     def run_full_pipeline(self, url: str, raw_html: str) -> PageAnalysis:
         """
-        Execute the full 3-stage pipeline for a single URL:
-          1. Clean HTML (Model 1)
-          2. Extract attack surface intelligence (Model 2)
-          3. Research exploits per keyword/finding (Model 3)
-        Returns a fully populated PageAnalysis.
+        Execute the full 4-step collaborative recon cycle:
+          1. Clean HTML (Cleaner AI)
+          2. Extract attack surface & suspicious items (Analyst AI)
+          3. Research vulnerabilities, CVEs, pentest relevance & generate tuples (DeepSeek Researcher AI)
+          4. Synthesize research tuples into final complete report (Analyst AI)
+        Returns a fully enriched PageAnalysis.
         """
-        print(f"  [1/3] Cleaning HTML for {url}...")
+        print(f"  [1/4] Cleaning HTML for {url}...")
         cleaned = self.clean_page(raw_html)
 
-        print(f"  [2/3] Extracting attack surface intelligence...")
+        print(f"  [2/4] Extracting attack surface & suspicious items (Analyst)...")
         analysis = self.analyze_page_deep(url, cleaned)
 
-        print(f"  [3/3] Researching exploits for {len(analysis.keyword_fingerprints)} fingerprint(s)...")
+        item_count = len(analysis.suspicious_items) or len(analysis.keyword_fingerprints)
+        print(f"  [3/4] Deep research on {item_count} item(s) (DeepSeek Researcher)...")
         exploit_report = self.research_exploits(analysis)
-        analysis.exploit_report = exploit_report
+
+        print(f"  [4/4] Synthesizing final report with research tuples (Analyst)...")
+        analysis = self.synthesize_final_report(analysis, exploit_report)
 
         return analysis
