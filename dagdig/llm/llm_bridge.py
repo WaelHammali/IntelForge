@@ -233,20 +233,25 @@ class TripleGroqAnalyzer(DualGroqAnalyzer):
 
     # ── Stage 3: Exploit Research & Tuple Generation (DeepSeek R1) ────────────
 
-    def research_exploits(self, analysis: PageAnalysis) -> dict:
+    def research_exploits(self, analysis: PageAnalysis, nmap_summary: str = "") -> dict:
         """
-        Stage 3 — Given a PageAnalysis with suspicious items, keywords, and recon data,
+        Stage 3 — Given a PageAnalysis with suspicious items, keywords, recon data, and Nmap service findings,
         query DeepSeek R1 to research vulnerabilities, CVEs, and pentest relevance.
         Returns a dictionary containing `research_tuples`, `recommended_attack_order`, etc.
         """
         items_to_research = list(dict.fromkeys(analysis.suspicious_items + analysis.keyword_fingerprints))
-        if not items_to_research and not analysis.llm_recon_paragraph:
+        if not items_to_research and not analysis.llm_recon_paragraph and not nmap_summary:
             return {"summary": "No recon items available for research.", "research_tuples": [], "vectors": []}
 
         research_prompt = _get_exploit_research_prompt()
 
         # Format context specifically emphasizing suspicious items to research
         context_parts = []
+        if nmap_summary:
+            context_parts.append("Nmap Discovered Ports & Service Versions:")
+            context_parts.append(nmap_summary)
+            context_parts.append("")
+
         if items_to_research:
             context_parts.append("Suspicious Items / Keywords to Investigate:")
             for item in items_to_research:
@@ -277,7 +282,7 @@ class TripleGroqAnalyzer(DualGroqAnalyzer):
         prompt = (
             f"Target URL: {analysis.url}\n\n"
             f"{full_context}\n\n"
-            "Perform deep vulnerability and exploit research for every item. "
+            "Perform deep vulnerability and exploit research for every item and Nmap service version. "
             "Return the research_tuples and prioritized attack order."
         )
 

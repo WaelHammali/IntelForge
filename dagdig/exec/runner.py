@@ -8,14 +8,14 @@ from core.state import StateManager
 from core.banner import print_status, print_good, print_warn, print_error
 from .network import NetworkScanner
 from .web import WebFuzzer
-from llm import DualGroqAnalyzer, GroqClient
+from llm import TripleGroqAnalyzer, GroqClient
 
 class DiscoveryRunner:
     def __init__(self, state: StateManager):
         self.state = state
         self.network = NetworkScanner(state)
         self.web = WebFuzzer(state)
-        self.analyzer = DualGroqAnalyzer(GroqClient())
+        self.analyzer = TripleGroqAnalyzer(GroqClient())
 
     def run_discovery(self, no_web: bool = False, no_llm: bool = False):
         """Run all nmap scans and web fuzzing tasks in parallel, then optionally run LLM analysis on discovered URLs."""
@@ -81,7 +81,19 @@ class DiscoveryRunner:
                 # Stage 2: Analyze all cleaned pages at once
                 analyses = self.analyzer.analyze_multiple_pages(cleaned_pages)
                 for analysis in analyses:
+                    # Save initial analysis
                     self.state.add_page_analysis(analysis)
+
+                # Perform Stage 3 research (exploit research) using Nmap findings
+                nmap_summary = self.state.get_nmap_summary()
+                for analysis in analyses:
+                    try:
+                        exploit_report = self.analyzer.research_exploits(analysis, nmap_summary=nmap_summary)
+                        enriched = self.analyzer.synthesize_final_report(analysis, exploit_report)
+                        self.state.add_page_analysis(enriched)
+                    except Exception as e:
+                        print_warn(f"Research/synthesis failed for {analysis.url}: {e}")
+
                 print_good("Intelligence analysis complete")
         else:
             if not self.analyzer.cleaner_client.is_configured():

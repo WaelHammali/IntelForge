@@ -162,6 +162,31 @@ class StateManager:
         with open(filename, "w") as f:
             f.write(output)
 
+    def get_nmap_summary(self) -> str:
+        """Return a concise, human-readable summary of discovered ports and services.
+
+        Format example:
+          tcp/80: http 2.4.41
+          udp/53: domain -
+          \nServices:
+          - openssh 7.6p1
+        """
+        lines = []
+        if self.data.open_ports:
+            for p in sorted(self.data.open_ports, key=lambda x: (x.protocol, x.number)):
+                svc = p.service or "unknown"
+                ver = p.version or "-"
+                lines.append(f"{p.protocol}/{p.number}: {svc} {ver}")
+
+        if self.data.services:
+            lines.append("")
+            lines.append("Services:")
+            for s in self.data.services:
+                ver = s.version or ""
+                lines.append(f"- {s.name} {ver}".strip())
+
+        return "\n".join(lines).strip()
+
     # ──────────────────────────────────────────────────────────────────────────
     def print_table(self):
         """Display all scan results as Unicode box-drawing tables."""
