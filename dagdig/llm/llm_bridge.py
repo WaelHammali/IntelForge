@@ -52,10 +52,15 @@ def _get_exploit_research_prompt() -> str:
 
 
 def _strip_json_fences(text: str) -> str:
-    """Remove potential markdown ```json ... ``` wrappers from LLM output."""
+    """Remove potential markdown ```json ... ``` and DeepSeek <think>...</think> wrappers from LLM output."""
     text = text.strip()
+    # Strip DeepSeek R1 reasoning chain <think>...</think> blocks
+    text = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL | re.IGNORECASE).strip()
     text = re.sub(r'^```(?:json)?\s*', '', text)
     text = re.sub(r'\s*```$', '', text)
+    match = re.search(r'(\{[\s\S]*\}|\[[\s\S]*\])', text)
+    if match:
+        return match.group(0).strip()
     return text.strip()
 
 
@@ -156,7 +161,7 @@ class TripleGroqAnalyzer(DualGroqAnalyzer):
         import os
         super().__init__(cleaner_client, analyzer_client)
 
-        # Stage 3: uses GROQ_API_KEY_3 / GROQ_MODEL_3 (falls back to key 2)
+        # Stage 3: uses GROQ_API_KEY_3 / GROQ_MODEL_3 (defaults to deepseek-r1-distill-llama-70b)
         api_key_3 = (
             os.environ.get('GROQ_API_KEY_3')
             or os.environ.get('GROQ_API_KEY_2')
@@ -164,7 +169,7 @@ class TripleGroqAnalyzer(DualGroqAnalyzer):
         )
         model_3 = os.environ.get(
             'GROQ_MODEL_3',
-            os.environ.get('GROQ_MODEL_2', os.environ.get('GROQ_MODEL', 'qwen/qwen3-8b'))
+            'deepseek-r1-distill-llama-70b'
         )
         self.researcher_client = researcher_client or GroqClient(
             api_key=api_key_3,
