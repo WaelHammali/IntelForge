@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-DAGDIG - Domain & Gateway Discovery Intelligence Gathering
-Main CLI entry point with interactive shell mode.
+IntelForge Scanning Framework — Autonomous Pentest & AI Recon Engine
+Keystone Groupe, Tunisia · AI & CyberSecurity Project 2026
 """
 import sys
 import shlex
@@ -35,7 +35,7 @@ def start_shell(state: StateManager):
         try:
             user_input = input(prompt_str).strip()
         except (KeyboardInterrupt, EOFError):
-            print(f"\n{W}[*] Exiting DAGDIG.{RST}")
+            print(f"\n{W}[*] Exiting IntelForge.{RST}")
             break
 
         if not user_input:
@@ -50,7 +50,7 @@ def start_shell(state: StateManager):
         cmd = args[0].lower()
 
         if cmd in ("exit", "quit", "q"):
-            print(f"{W}[*] Exiting DAGDIG.{RST}")
+            print(f"{W}[*] Exiting IntelForge.{RST}")
             break
 
         elif cmd in ("help", "?"):

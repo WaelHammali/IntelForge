@@ -1,149 +1,153 @@
-# IntelForge ⚡
-### Integrated Network & Target ELicitation Framework for Offensive Recon & Guided Exploitation
-> **An autonomous OSINT-to-exploit engine and AI-driven attack surface analyzer tailored for Hack The Box (HTB) machines, CTFs, and penetration testing.**
-> CLI tool: `dagdig`
+# IntelForge Scanning Framework ⚡
+### Autonomous Penetration Testing & Reconnaissance AI Engine
+> **Keystone Groupe, Tunisia · AI and CyberSecurity Project 2026**  
+> *An end-to-end automated security framework combining passive OSINT, multi-threaded network & web discovery, and a 4-stage reasoning AI pipeline powered by Groq LLMs and DeepSeek R1.*
+
+[![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![AI Engine](https://img.shields.io/badge/AI%20Engine-Groq%20%7C%20DeepSeek%20R1-orange.svg)](https://groq.com)
+[![OSINT Integration](https://img.shields.io/badge/OSINT-FinalRecon-red.svg)](https://github.com/thewhiteh4t/FinalRecon)
+[![Organization](https://img.shields.io/badge/Organization-Keystone%20Groupe%2C%20Tunisia-brightgreen.svg)]()
 
 ---
 
-## 📌 Overview
+## 📌 Executive Overview
 
-**IntelForge** (`dagdig`) is a reconnaissance and attack-path discovery tool designed to eliminate manual enumeration bottlenecks during penetration tests and CTF challenges.
+**IntelForge** is an autonomous penetration testing and intelligence framework built to eliminate manual enumeration bottlenecks during security assessments, CTFs, and Red Team operations.
 
-By integrating **FinalRecon OSINT**, multi-threaded port discovery, web fuzzing, and a **Triple Groq LLM Intelligence Pipeline** (featuring **DeepSeek R1** for exploit research), IntelForge transitions seamlessly from passive intelligence gathering to raw port scans and on to actionable, high-priority exploitation avenues.
+It combines **passive OSINT harvesting** (FinalRecon — WHOIS, DNS, SSL/TLS, Wayback Machine, headers), **active network discovery** (Nmap TCP/UDP, web directory, subdomain & vhost fuzzing), and a **4-Stage Collaborative AI Pipeline** (powered by Groq LLMs and DeepSeek R1 reasoning). 
 
-```
-+-------------------------------------------------------------------------------+
-|                                  DAGDIG WORKFLOW                              |
-+-------------------------------------------------------------------------------+
-|  1. RECON          Nmap TCP/UDP Scans + Directory / Subdomain / Vhost Fuzzing |
-|        |                                                                      |
-|  2. STAGE 1 AI     HTML Cleaner & Pre-Processor (noise reduction)             |
-|        |                                                                      |
-|  3. STAGE 2 AI     Attack Surface Analyst (Initial Signal & Suspicious Items) |
-|        |           - Maps bypass paths, upload points, injectable parameters  |
-|        |           - Extracts suspicious items & keywords that induce doubt   |
-|        |                                                                      |
-|  4. STAGE 3 AI     Exploit Researcher (DeepSeek R1 Reasoning)                 |
-|        |           - Deep searches CVEs, affected versions, attack types      |
-|        |           - Determines pentest relevance & generates research tuples |
-|        |                                                                      |
-|  5. STAGE 4 AI     Analyst Intelligence Synthesis                             |
-|        |           - Ingests research tuples to produce final attack plan     |
-|        V                                                                      |
-|  6. OUTPUT         State JSON + Exploit Intelligence Plan (`data/exploit_*.json`)|
-+-------------------------------------------------------------------------------+
+IntelForge automatically transitions from target discovery to structured exploit intelligence reports, drastically reducing manual enumeration time.
+
+```mermaid
+flowchart TD
+    Target[Target Domain / IP] -->|Parallel Execution| OSINT[Passive OSINT Engine\nFinalRecon]
+    Target -->|Parallel Execution| ActiveScan[Active Recon Engine\nNmap TCP/UDP]
+    Target -->|Parallel Execution| WebFuzz[Web Fuzzer\nDirs, Subs, VHosts]
+
+    OSINT -->|Extracts Subdomains, Dirs, Headers, Emails| StateManager[Centralized State Manager\nTargetData]
+    ActiveScan -->|Extracts Ports & Services| StateManager
+    WebFuzz -->|Extracts Paths & Endpoints| StateManager
+
+    StateManager -->|Discovered URLs & Service Banners| AI_Stage1[Stage 1: HTML Cleaner AI\nStrips noise & formats HTML]
+    AI_Stage1 --> AI_Stage2[Stage 2: Analyst AI\nAttack surface & suspicious items]
+    AI_Stage2 --> AI_Stage3[Stage 3: Researcher AI\nDeepSeek R1 Vulnerability & CVE Research]
+    AI_Stage3 --> AI_Stage4[Stage 4: Analyst AI\nFinal Exploit Report Synthesis]
+
+    AI_Stage4 --> Output[Structured JSON Exploit Report & Tabular UI]
 ```
 
 ---
 
 ## 🚀 Key Capabilities
 
-- 🎯 **Network Reconnaissance**: Fast TCP & UDP port discovery using `nmap`, service banner grabbing, and OS fingerprinting.
-- 🔍 **Web Surface Discovery**: Parallel directory fuzzing, virtual host identification, and endpoint mapping.
-- 🧠 **Collaborative Multi-LLM Pipeline**:
-  - **Stage 1 — Cleaner**: Cleans raw HTML/cURL responses, extracting pure structured elements.
-  - **Stage 2 — Analyst (Discovery)**: Maps upload forms, query parameters, bypass endpoints, and extracts a dedicated list of suspicious items/keywords that raise doubt for attacks.
-  - **Stage 3 — Researcher (DeepSeek R1)**: Performs deep vulnerability research per item, evaluates pentest relevance, and returns structured `(keyword, findings)` tuples with exact PoC commands and CVEs.
-  - **Stage 4 — Analyst (Synthesis)**: Ingests the Researcher's tuples to weave a comprehensive, prioritized Exploit Action Plan.
-- 📊 **Dynamic State Management**: Centralized tracking across scans, instant tabular status display, and structured JSON export ready for hand-off to other tools or LLMs.
+- 🔍 **Passive OSINT Harvesting (FinalRecon Integration)**:
+  - Header inspection & security policy verification.
+  - SSL/TLS certificate chain & Subject Alternative Name (SAN) extraction.
+  - DNS record enumeration (A, AAAA, MX, TXT, NS, SOA, DNSKEY).
+  - WHOIS registrar & registrant contact discovery.
+  - Historical endpoint harvesting via Wayback Machine.
+- 🎯 **Active Network Reconnaissance**:
+  - Multi-threaded full TCP (`-sS -sC -sV`) and UDP top-port discovery with `nmap`.
+  - Automatic service banner grabbing and version detection.
+- 🌐 **Web Attack Surface Fuzzing**:
+  - Directory enumeration, subdomain mapping, and HTTP host header (`VHost`) discovery.
+  - Automated fallback wordlist logic and SecLists integration.
+- 🧠 **4-Stage Collaborative AI Reasoning Engine**:
+  - **Stage 1 — Cleaner AI**: Strips heavy CSS/JS noise, producing clean, structured page DOMs.
+  - **Stage 2 — Analyst AI (Intel)**: Maps upload points, query parameters, bypass endpoints, and identifies suspicious keywords.
+  - **Stage 3 — Researcher AI (DeepSeek R1)**: Queries DeepSeek R1 reasoning engine to research CVEs, payload techniques, and pentest relevance.
+  - **Stage 4 — Analyst AI (Synthesis)**: Ingests all research tuples and generates a prioritized, actionable **Exploit Intelligence Plan**.
+- 📊 **Dynamic State Management & Visualization**:
+  - Real-time Metasploit-style console REPL with colored Unicode box tables.
+  - Exportable structured JSON reports for hand-off to Red Teams or automated tools.
 
 ---
 
-## 🛠️ Prerequisites
+## 🛠️ Installation & Setup
 
-DAGDIG is designed for Linux environments (Kali Linux, Parrot OS, Ubuntu/Debian):
-
+### Prerequisites
+IntelForge is designed for Linux environments (Kali Linux, Parrot OS, Ubuntu/Debian):
 - **Python**: 3.10 or higher
 - **Nmap**: `sudo apt install -y nmap`
-- **Figlet**: `sudo apt install -y figlet` (for dynamic colored ASCII banners)
-- **Wordlists**: `seclists`, `dirb`, or `wordlists` package (optional, built-in fallbacks provided)
-- **Groq API Key**: Free API key from [Groq Console](https://console.groq.com) (provides ultra-low-latency Llama-3.3-70B inferences)
+- **Figlet**: `sudo apt install -y figlet` *(for dynamic colored ASCII banners)*
+- **Wordlists**: `seclists`, `dirb`, or built-in fallbacks
 
----
-
-## 📦 Installation & Setup
-
-### 1. Clone the Repository
+### 1. Clone Repository & Setup
 ```bash
-git clone https://github.com/WaelHammali/Pentest_Command_DAGDIG.git
-cd Pentest_Command_DAGDIG
-```
-
-### 2. Install System Tools & Wordlists (Recommended for Kali / Ubuntu)
-```bash
-sudo apt update
-sudo apt install -y nmap figlet seclists dirb wordlists
-```
-
-### 3. Run Automated Setup
-Run the setup script to create a virtual environment, install Python dependencies, and symlink local wordlists:
-```bash
+git clone https://github.com/WaelHammali/Pentest_Command_DAGDIG.git intelforge
+cd intelforge
 chmod +x dagdig/scripts/setup.sh
 ./dagdig/scripts/setup.sh
 ```
 
-*(Alternatively, manual setup:)*
+*(Or manual setup:)*
 ```bash
 python3 -m venv venv
 source venv/bin/activate
 pip install -r dagdig/requirements.txt
 ```
 
-### 4. Configure Your API Key
-Copy the example environment file and add your Groq API key:
+### 2. Configure API Keys
+Copy `.env.example` and set your Groq API key:
 ```bash
 cp dagdig/.env.example dagdig/.env
-nano dagdig/.env
 ```
-Add your key:
+Edit `dagdig/.env`:
 ```ini
 GROQ_API_KEY=gsk_your_groq_api_key_here
+# Optional secondary/tertiary keys for parallel LLM stages:
+# GROQ_API_KEY_2=gsk_...
+# GROQ_API_KEY_3=gsk_...
 ```
 
 ---
 
-## 📖 How to Run DAGDIG
+## 📖 Usage Guide
 
-You can run commands directly using the root launcher:
+IntelForge can be executed via interactive console or CLI subcommands using `intelforge.py` or `dagdig.py`:
 
-### 1. Full Target Scan & AI Analysis (Recon -> Fuzzing -> AI)
-Run complete port scanning, directory fuzzing, and AI synthesis on a target IP or domain:
+### 1. Interactive Metasploit-Style Shell
+Launch the console with live prompts:
 ```bash
-python dagdig.py scan 10.10.11.x
+python intelforge.py
+```
+Inside console:
+```text
+intelforge > use 10.10.11.x
+intelforge 10.10.11.x > scan
+intelforge 10.10.11.x > show
+intelforge 10.10.11.x > webanalyze
+```
+
+### 2. Full Target Scan (Nmap + Fuzzing + FinalRecon OSINT + AI Analysis)
+Run parallel discovery and LLM intelligence pipeline:
+```bash
+python intelforge.py scan 10.10.11.x
 ```
 *Options:*
-- `--ports 1-1000` / `-p 80,443,8080`: Custom port ranges
-- `--udp / -u`: Include UDP scanning
-- `--no-ai`: Skip AI analysis
+- `--no-web`: Skip web directory/subdomain fuzzing.
+- `--no-osint`: Skip FinalRecon OSINT harvesting.
 
-### 2. Web Attack Surface & Exploit Advisor (`webanalyze`)
-Directly analyze a web application URL through the 3-stage LLM pipeline to discover bypass paths, injection points, and attack vectors:
+### 3. Standalone FinalRecon OSINT Scan
+Run deep passive OSINT on a target domain:
 ```bash
-python dagdig.py webanalyze http://10.10.11.x/
-```
-*What this outputs:*
-- Discovered bypass endpoints & authentication portals
-- Upload forms with payload recommendations (webshell injection, extension bypasses)
-- Manipulable URL parameters (`id`, `page`, `file`, etc.)
-- Specific page keywords and clues
-- Comprehensive **Exploit Intelligence Report** saved to `dagdig/data/exploit_<target>_<timestamp>.json`
-
-### 3. Inspect Current Reconnaissance State
-View discovered services, open ports, directories, and vulnerabilities in a clean CLI table:
-```bash
-python dagdig.py show
+python intelforge.py osint example.com
 ```
 
-### 4. Re-run AI Analysis on Discovered State
-Re-analyze existing scan data stored in state without re-running network scans:
+### 4. Deep Web Attack Surface Analysis (`webanalyze`)
+Execute 4-stage AI analysis directly on a web target:
 ```bash
-python dagdig.py analyze
+python intelforge.py webanalyze http://10.10.11.x/
 ```
 
-### 5. Export Scan Data
-Export the structured state to a JSON file:
+### 5. View State & Export Results
 ```bash
-python dagdig.py export scan_results.json
+# Display formatted Unicode box tables of discovered ports, paths & vulnerabilities
+python intelforge.py show
+
+# Export current session state to JSON
+python intelforge.py export results.json
 ```
 
 ---
@@ -151,40 +155,42 @@ python dagdig.py export scan_results.json
 ## 📂 Project Architecture
 
 ```
-Pentest_Command_DAGDIG/
-├── dagdig.py                     # Root CLI launcher
-├── README.md                     # Project documentation
-└── dagdig/                       # Main package
-    ├── dagdig.py                 # Core CLI entrypoint & commands
-    ├── core/                     # State management, data schemas, banners
-    │   ├── schema.py             # TargetData & PageAnalysis data models
-    │   └── state.py              # Persistent scan state manager
-    ├── exec/                     # Execution engines
-    │   ├── nmap.py               # TCP/UDP port scanner
-    │   └── web.py                # Directory & vhost fuzzer
-    ├── llm/                      # LLM Integration & Orchestration
-    │   ├── client.py             # Groq API client
-    │   └── llm_bridge.py         # DualGroqAnalyzer & TripleGroqAnalyzer (Stages 1-3)
+intelforge/
+├── intelforge.py                 # Root CLI launcher script
+├── dagdig.py                     # Legacy / alternative entrypoint
+├── README.md                     # Framework documentation
+└── dagdig/                       # Main package directory
+    ├── dagdig.py                 # Core CLI entrypoint & interactive REPL
+    ├── core/                     # Core state engine & UI renderer
+    │   ├── schema.py             # TargetData & PageAnalysis models
+    │   ├── state.py              # State persistence manager
+    │   └── banner.py             # ASCII banner & terminal formatting
+    ├── exec/                     # Execution modules
+    │   ├── network.py            # Nmap TCP/UDP scanner
+    │   ├── web.py                # Directory, subdomain & vhost fuzzer
+    │   ├── osint.py              # FinalRecon OSINT wrapper
+    │   └── runner.py             # Parallel discovery coordinator
+    ├── llm/                      # AI Engines & Multi-Stage Bridge
+    │   ├── client.py             # Groq API client interface
+    │   └── llm_bridge.py         # DualGroq & TripleGroq AI Analyzers
     ├── attack/                   # Attack planning & tracking
-    │   ├── tracker.py            # Attack vector tracking & logging
+    │   ├── tracker.py            # Real-time pipeline status tracker
     │   └── advisor.py            # WebAttackAdvisor orchestration
     ├── prompts/                  # Stage 1, 2, and 3 prompt templates
-    ├── scripts/
-    │   └── setup.sh              # Automated installation & environment setup
-    └── wordlists/                # Symlinked system wordlists (.gitignored)
+    ├── data/                     # Output directory for JSON reports & raw logs
+    └── scripts/
+        └── setup.sh              # Automated environment setup script
 ```
 
 ---
 
-## 🛡️ Wordlists Information
+## 🏢 About Keystone Groupe
 
-To keep the repository lightweight, large wordlist files (such as SecLists and rockyou) are **not** bundled directly in Git. 
-
-- When `./dagdig/scripts/setup.sh` runs, it automatically detects and creates symbolic links to your system's wordlists in `/usr/share/wordlists` and `/usr/share/seclists`.
-- If no system wordlists are found, DAGDIG seamlessly falls back to embedded, high-signal wordlists for directory and parameter fuzzing.
+Developed as part of the **AI and CyberSecurity Project 2026** at **Keystone Groupe, Tunisia**.  
+IntelForge bridges traditional offensive security tools with state-of-the-art AI reasoning to automate vulnerability discovery and threat modeling.
 
 ---
 
 ## ⚖️ Disclaimer
 
-DAGDIG is intended strictly for authorized security assessments, educational purposes, CTF competitions, and Hack The Box machines. Unauthorized testing of systems without explicit consent is illegal.
+IntelForge is intended strictly for authorized security assessments, educational purposes, CTF competitions, and penetration testing on systems with explicit written consent. Unauthorized scanning of third-party infrastructure is strictly illegal.

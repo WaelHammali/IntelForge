@@ -76,9 +76,9 @@ BANNERS = [
   |____/ \____\___/|_|   |____/|___|{RST}""",
 ]
 
-VERSION = "1.0.0"
+VERSION = "2.0.0"
 
-def get_figlet_banner(text: str = "DAGDIG", font: str = None) -> str:
+def get_figlet_banner(text: str = "IntelForge", font: str = None) -> str:
     """Generate colored ASCII art for text using system figlet or pyfiglet, with fallback"""
     selected_font = font or random.choice(FIGLET_FONTS)
     palette = random.choice(COLOR_PALETTES)
@@ -132,12 +132,11 @@ def get_figlet_banner(text: str = "DAGDIG", font: str = None) -> str:
 
 def print_banner():
     """Print the colored figlet banner and startup status box"""
-    art = get_figlet_banner("DAGDIG")
+    art = get_figlet_banner("IntelForge")
     print(art)
 
-    # ── Stats row (like msf6's module count table) ─────────────────────────────
-    now = datetime.now().strftime("%Y-%m-%d %H:%M")
-    col_w = 60
+    # ── Stats row ─────────────────────────────────────────────────────────────
+    col_w = 68
 
     def stat_line(left, right=""):
         pad = col_w - len(left) - len(right) - 2
@@ -146,19 +145,19 @@ def print_banner():
     border = f"{W}  {'=' * col_w}{RST}"
 
     print(border)
-    print(f"{W}  {Y}={RST}[ {C}dagdig v{VERSION}{RST} - Domain & Gateway Discovery Intelligence{' ' * 2}]")
-    print(f"{W}+ {R}--{W} --={RST}[ {G}Network Scanner{RST}  · {G}Web Fuzzer{RST}  · {G}State Manager{RST}  · {G}LLM Bridge{RST} {' ' * 2}]")
-    print(f"{W}+ {R}--{W} --={RST}[ {Y}Recon{RST}: tcp_full · tcp_light · udp_top · udp_light{' ' * 10}]")
-    print(f"{W}+ {R}--{W} --={RST}[ {Y}Fuzz{RST}:  dirs · subdomains · vhosts · parameters{' ' * 11}]")
+    print(f"{W}  {Y}={RST}[ {C}IntelForge v{VERSION}{RST} - Autonomous Pentest & AI Recon Framework{' ' * 2}]")
+    print(f"{W}  {Y}={RST}[ {DIM}Keystone Groupe, Tunisia · AI & CyberSecurity Project 2026{RST} {' ' * 5}]")
+    print(f"{W}+ {R}--{W} --={RST}[ {G}Passive OSINT{RST} (FinalRecon) · {G}Active Recon{RST} (Nmap) · {G}Web Fuzzer{RST} ]")
+    print(f"{W}+ {R}--{W} --={RST}[ {Y}4-Stage AI Pipeline{RST}: Groq LLM + DeepSeek R1 Reasoning Engines ]")
     print(border)
     print()
 
 
 def get_prompt(context: str = "") -> str:
-    """Return the styled dagdig prompt (like msf6 >)"""
+    """Return the styled prompt"""
     if context:
-        return f"{W}dagdig{RST} {R}{context}{RST} {W}>{RST} "
-    return f"{W}dagdig{RST} {W}>{RST} "
+        return f"{W}intelforge{RST} {R}{context}{RST} {W}>{RST} "
+    return f"{W}intelforge{RST} {W}>{RST} "
 
 
 def print_status(msg: str):
