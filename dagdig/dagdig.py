@@ -59,7 +59,8 @@ def start_shell(state: StateManager):
             print(f"  {C}Command{RST}                   {C}Description{RST}")
             print(f"  {DIM}-------                   -----------{RST}")
             print(f"  {G}use <target>{RST}              Set current target IP address or domain for session")
-            print(f"  {G}scan [target]{RST}             Run full reconnaissance scan (nmap + web fuzzing)")
+            print(f"  {G}scan [target]{RST}             Run full reconnaissance scan (nmap + web fuzzing + FinalRecon OSINT)")
+            print(f"  {G}osint [target]{RST}            Run standalone FinalRecon OSINT scan")
             print(f"  {G}show{RST}                      Display current scan results in Unicode box tables")
             print(f"  {G}analyze{RST}                   Basic Dual-Groq AI page analysis")
             print(f"  {G}webanalyze [url]{RST}          {Y}3-Stage deep CTF recon: clean→intel→exploit research{RST}")
@@ -88,11 +89,24 @@ def start_shell(state: StateManager):
                 continue
             current_target = target
             no_web = "--no-web" in args
+            no_osint = "--no-osint" in args
             state.set_target(target)
             print_status(f"Starting reconnaissance on target: {target}")
             runner = DiscoveryRunner(state)
-            runner.run_discovery(no_web=no_web)
+            runner.run_discovery(no_web=no_web, no_osint=no_osint)
             print_good("Scan complete. Run 'show' to view results.")
+
+        elif cmd == "osint":
+            target = args[1] if len(args) > 1 else current_target
+            if not target:
+                print_warn("No target specified. Usage: osint <IP or domain>  OR  type 'use <target>' first.")
+                continue
+            current_target = target
+            state.set_target(target)
+            from exec.osint import OsintScanner
+            osint_scanner = OsintScanner(state)
+            osint_scanner.run_osint(target)
+            print_good("OSINT scan complete. Run 'show' to view results.")
 
         elif cmd == "show":
             if not state.data.target:
@@ -310,6 +324,19 @@ def run_web_analyze(state: StateManager, direct_url: str = None):
     advisor = WebAttackAdvisor(state)
     advisor.run(urls=list(dict.fromkeys(urls_to_analyze)))  # deduplicate preserving order
     state.print_table()
+
+
+@cli.command()
+@click.argument('target')
+@click.pass_context
+def osint(ctx, target):
+    """Run standalone FinalRecon OSINT scan on target"""
+    state = ctx.obj['state']
+    state.set_target(target)
+    from exec.osint import OsintScanner
+    osint_scanner = OsintScanner(state)
+    osint_scanner.run_osint(target)
+    print_good("OSINT scan complete. Run 'show' to view results.")
 
 
 @cli.command()

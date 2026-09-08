@@ -1,14 +1,15 @@
-# DAGDIG ⚡
-### Domain & Gateway Discovery Intelligence Gathering
-> **An autonomous reconnaissance engine and AI-driven attack surface analyzer tailored for Hack The Box (HTB) machines, CTFs, and penetration testing.**
+# IntelForge ⚡
+### Integrated Network & Target ELicitation Framework for Offensive Recon & Guided Exploitation
+> **An autonomous OSINT-to-exploit engine and AI-driven attack surface analyzer tailored for Hack The Box (HTB) machines, CTFs, and penetration testing.**
+> CLI tool: `dagdig`
 
 ---
 
 ## 📌 Overview
 
-**DAGDIG** is a reconnaissance and attack-path discovery tool designed to eliminate manual enumeration bottlenecks during penetration tests and CTF challenges.
+**IntelForge** (`dagdig`) is a reconnaissance and attack-path discovery tool designed to eliminate manual enumeration bottlenecks during penetration tests and CTF challenges.
 
-By integrating multi-threaded port discovery, web fuzzing, and a **Triple Groq LLM Intelligence Pipeline** (featuring **DeepSeek R1** for exploit research), DAGDIG transitions seamlessly from raw port scans to actionable, high-priority exploitation avenues.
+By integrating **FinalRecon OSINT**, multi-threaded port discovery, web fuzzing, and a **Triple Groq LLM Intelligence Pipeline** (featuring **DeepSeek R1** for exploit research), IntelForge transitions seamlessly from passive intelligence gathering to raw port scans and on to actionable, high-priority exploitation avenues.
 
 ```
 +-------------------------------------------------------------------------------+

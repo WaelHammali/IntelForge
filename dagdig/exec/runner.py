@@ -8,6 +8,7 @@ from core.state import StateManager
 from core.banner import print_status, print_good, print_warn, print_error
 from .network import NetworkScanner
 from .web import WebFuzzer
+from .osint import OsintScanner
 from llm import TripleGroqAnalyzer, GroqClient
 
 class DiscoveryRunner:
@@ -15,10 +16,11 @@ class DiscoveryRunner:
         self.state = state
         self.network = NetworkScanner(state)
         self.web = WebFuzzer(state)
+        self.osint = OsintScanner(state)
         self.analyzer = TripleGroqAnalyzer(GroqClient())
 
-    def run_discovery(self, no_web: bool = False, no_llm: bool = False):
-        """Run all nmap scans and web fuzzing tasks in parallel, then optionally run LLM analysis on discovered URLs."""
+    def run_discovery(self, no_web: bool = False, no_llm: bool = False, no_osint: bool = False):
+        """Run all nmap scans, web fuzzing tasks, and FinalRecon OSINT in parallel, then optionally run LLM analysis on discovered URLs."""
         target = self.state.data.target
         print_status(f"Starting discovery on {target}")
 
@@ -29,6 +31,9 @@ class DiscoveryRunner:
             ('nmap_tcp_light', lambda: self.network.scan_tcp_light(target)),
             ('nmap_udp_light', lambda: self.network.scan_udp_light(target)),
         ]
+
+        if not no_osint:
+            tasks.append(('finalrecon_osint', lambda: self.osint.run_osint(target)))
 
         # Add web fuzzing if target looks like a domain (contains non-digit) and no_web is disabled
         if not no_web and not target.replace('.', '').isdigit():
