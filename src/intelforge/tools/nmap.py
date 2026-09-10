@@ -25,7 +25,9 @@ class NmapScanner:
 
     def run_profile(self, target: str, profile: str) -> str:
         flags = shlex.split(self.config.nmap_profiles[profile])
-        argv = ["nmap", *flags, "-oX", "-", target]
+        # "--" terminates option parsing so a hostile target can never be read
+        # as an Nmap flag. The target is validated upstream (domain.target).
+        argv = ["nmap", *flags, "-oX", "-", "--", target]
         xml = run_command(
             self.state,
             name=f"nmap_{profile}",

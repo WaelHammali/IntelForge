@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import concurrent.futures
 from typing import Any
+from urllib.parse import urlparse
 
 import requests
 from langchain_core.language_models import BaseChatModel
@@ -18,7 +19,7 @@ from intelforge.console.theme import good, status, warn
 from intelforge.graph.state import GraphState
 from intelforge.tools.finalrecon import FinalReconScanner
 from intelforge.tools.nmap import NmapScanner
-from intelforge.tools.webfuzz import WebFuzzer, looks_like_ip
+from intelforge.tools.webfuzz import WebFuzzer
 
 
 def _maybe_model(role: str) -> BaseChatModel | None:
@@ -34,19 +35,20 @@ def recon(gstate: GraphState) -> dict[str, Any]:
     state, opts = gstate["target"], gstate["options"]
     if opts.skip_recon:
         return {}
-    target = state.data.target
+    ti = state.target_info()
+    web_target = ti.url or ti.host
 
     tasks: list[tuple[str, Any]] = []
     if not opts.skip_nmap:
-        tasks.append(("nmap", lambda: NmapScanner(state).run_all(target)))
+        tasks.append(("nmap", lambda: NmapScanner(state).run_all(ti.host)))
     if not opts.skip_osint:
-        tasks.append(("finalrecon", lambda: FinalReconScanner(state).run(target)))
-    if not opts.skip_web and not looks_like_ip(target):
-        tasks.append(("webfuzz", lambda: WebFuzzer(state).run_all(target)))
+        tasks.append(("finalrecon", lambda: FinalReconScanner(state).run(web_target)))
+    if not opts.skip_web and not ti.is_ip:
+        tasks.append(("webfuzz", lambda: WebFuzzer(state).run_all(web_target)))
     if not tasks:
         return {}
 
-    status(f"Reconnaissance on {target} — {len(tasks)} collectors")
+    status(f"Reconnaissance on {ti.raw} — {len(tasks)} collectors")
     with concurrent.futures.ThreadPoolExecutor(max_workers=len(tasks)) as pool:
         futures = {pool.submit(fn): name for name, fn in tasks}
         for future in concurrent.futures.as_completed(futures):
@@ -68,18 +70,20 @@ def clean_commands(gstate: GraphState) -> dict[str, Any]:
 
 # ── page fetch ─────────────────────────────────────────────────────────────
 def _page_urls(gstate: GraphState) -> list[str]:
-    opts, data = gstate["options"], gstate["target"].data
+    opts = gstate["options"]
     if opts.direct_urls:
         return list(dict.fromkeys(opts.direct_urls))
-    target = data.target
-    scheme = "https" if target.startswith("https") else "http"
-    urls: set[str] = set()
-    if target:
-        urls.add(target if target.startswith("http") else f"{scheme}://{target}")
-    for host in [*data.subdomains, *data.vhosts]:
+    state = gstate["target"]
+    if not state.data.target:
+        return []
+    ti = state.target_info()
+    base = ti.url.rstrip("/") if ti.url else f"http://{ti.host}"
+    scheme = urlparse(base).scheme
+    urls: set[str] = {base}
+    for host in [*state.data.subdomains, *state.data.vhosts]:
         urls.add(f"{scheme}://{host}")
-    for directory in data.directories:
-        urls.add(f"{scheme}://{target}/{directory.lstrip('/')}")
+    for directory in state.data.directories:
+        urls.add(f"{base}/{directory.lstrip('/')}")
     return sorted(urls)
 
 

@@ -63,7 +63,7 @@ class WebFuzzer:
         return urlparse(target).netloc if "://" in target else target
 
     def _base_url(self, target: str) -> str:
-        return target if target.startswith("http") else f"http://{target}"
+        return target if "://" in target else f"http://{target}"
 
     # ── fuzzers ────────────────────────────────────────────────────────────
     def fuzz_directories(self, target: str) -> list[str]:
@@ -136,9 +136,3 @@ class WebFuzzer:
         self.fuzz_directories(target)
         self.fuzz_subdomains(target)
         self.fuzz_vhosts(target)
-
-
-def looks_like_ip(target: str) -> bool:
-    """Bare IPv4 → web fuzzing is skipped (matches the legacy runner guard)."""
-    host = WebFuzzer._host(target)
-    return host.replace(".", "").isdigit()
