@@ -50,7 +50,10 @@ dev = [
 intelforge = "intelforge.cli:main"
 
 [project.urls]
-Repository = "https://github.com/WaelHammali/Pentest_Command_DAGDIG"
+Homepage = "https://github.com/WaelHammali/IntelForge"
+Repository = "https://github.com/WaelHammali/IntelForge"
+Issues = "https://github.com/WaelHammali/IntelForge/issues"
+Changelog = "https://github.com/WaelHammali/IntelForge/blob/main/CHANGELOG.md"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/intelforge"]
