@@ -12,13 +12,13 @@ class NetworkScanner:
     def __init__(self, state: StateManager):
         self.state = state
 
-    def _run_nmap(self, cmd: list, scan_name: str) -> str:
-        """Run nmap and return XML output, save raw"""
+    def _run_nmap(self, cmd: list, scan_name: str, purpose: str = "") -> str:
+        """Run nmap and return XML output, save raw + register the command."""
         print_status(f"Running {scan_name}...")
         try:
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
             output = result.stdout
-            self.state.save_raw(scan_name, output)
+            self.state.record_command(scan_name, cmd, purpose or scan_name, output)
             return output
         except subprocess.TimeoutExpired:
             print_warn(f"{scan_name} timed out")
@@ -72,7 +72,7 @@ class NetworkScanner:
             '--min-rate', '1000', '-T4',
             '-oX', '-', target
         ]
-        xml_out = self._run_nmap(cmd, 'tcp_full')
+        xml_out = self._run_nmap(cmd, 'tcp_full', 'Full TCP scan (all ports, service + script)')
         self._parse_nmap_xml(xml_out)
         return xml_out
 
@@ -83,7 +83,7 @@ class NetworkScanner:
             '--min-rate', '500', '-T4',
             '-oX', '-', target
         ]
-        xml_out = self._run_nmap(cmd, 'udp_top')
+        xml_out = self._run_nmap(cmd, 'udp_top', 'UDP scan (top 200 ports, service detection)')
         self._parse_nmap_xml(xml_out)
         return xml_out
 
@@ -94,7 +94,7 @@ class NetworkScanner:
             '--min-rate', '5000', '-T5',
             '-oX', '-', target
         ]
-        xml_out = self._run_nmap(cmd, 'tcp_light')
+        xml_out = self._run_nmap(cmd, 'tcp_light', 'Fast TCP scan (top 1000 ports)')
         self._parse_nmap_xml(xml_out)
         return xml_out
 
@@ -105,6 +105,6 @@ class NetworkScanner:
             '--min-rate', '2000', '-T5',
             '-oX', '-', target
         ]
-        xml_out = self._run_nmap(cmd, 'udp_light')
+        xml_out = self._run_nmap(cmd, 'udp_light', 'Fast UDP scan (top 100 ports)')
         self._parse_nmap_xml(xml_out)
         return xml_out
