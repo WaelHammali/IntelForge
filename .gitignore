@@ -36,6 +36,7 @@ wordlists/*
 # IDE / OS / local tooling
 .vscode/
 .idea/
+.claude/
 *.swp
 *.swo
 .DS_Store
