@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import shlex
-import xml.etree.ElementTree as ET
+
+from defusedxml.common import DefusedXmlException
+from defusedxml.ElementTree import ParseError, fromstring
 
 from intelforge.config import Settings, settings
 from intelforge.domain.models import Port, Service
@@ -43,8 +45,8 @@ class NmapScanner:
         if not xml_output.strip():
             return
         try:
-            root = ET.fromstring(xml_output)
-        except ET.ParseError:
+            root = fromstring(xml_output)
+        except (ParseError, DefusedXmlException):
             return
 
         data = self.state.data
@@ -54,12 +56,15 @@ class NmapScanner:
                 data.ip_address = addr.get("addr", "")
 
             for port_el in host.findall(".//port"):
+                portid = port_el.get("portid", "")
+                if not portid.isdigit():
+                    continue
                 service_el = port_el.find("service")
                 name = service_el.get("name", "unknown") if service_el is not None else "unknown"
                 version = service_el.get("version", "") if service_el is not None else ""
                 data.add_port(
                     Port(
-                        number=int(port_el.get("portid", "0")),
+                        number=int(portid),
                         protocol=port_el.get("protocol", "tcp"),
                         service=name,
                         version=version,

@@ -47,3 +47,23 @@ def test_parse_xml_is_idempotent(state: TargetState) -> None:
 def test_parse_xml_ignores_garbage(state: TargetState) -> None:
     NmapScanner(state).parse_xml("not xml at all")
     assert state.data.open_ports == []
+
+
+def test_parse_xml_rejects_entity_expansion(state: TargetState) -> None:
+    billion_laughs = """<?xml version="1.0"?>
+    <!DOCTYPE lolz [<!ENTITY lol "lol"><!ENTITY lol2 "&lol;&lol;&lol;">]>
+    <nmaprun><host><ports><port protocol="tcp" portid="80">&lol2;</port></ports></host></nmaprun>
+    """
+    NmapScanner(state).parse_xml(billion_laughs)  # must not raise or hang
+    assert state.data.open_ports == []
+
+
+def test_parse_xml_skips_non_numeric_portid(state: TargetState) -> None:
+    xml = (
+        "<nmaprun><host><ports>"
+        '<port protocol="tcp" portid="notaport"><service name="http"/></port>'
+        '<port protocol="tcp" portid="443"><service name="https"/></port>'
+        "</ports></host></nmaprun>"
+    )
+    NmapScanner(state).parse_xml(xml)
+    assert [p.number for p in state.data.open_ports] == [443]

@@ -31,6 +31,7 @@ dependencies = [
     "requests>=2.31",
     "rich>=13.7",
     "pyyaml>=6.0",
+    "defusedxml>=0.7",
 ]
 
 [project.optional-dependencies]
@@ -42,6 +43,7 @@ dev = [
     "pre-commit>=3.7",
     "types-requests",
     "types-PyYAML",
+    "types-defusedxml",
 ]
 
 [project.scripts]
