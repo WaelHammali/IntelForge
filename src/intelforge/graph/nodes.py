@@ -36,12 +36,15 @@ def recon(gstate: GraphState) -> dict[str, Any]:
         return {}
     target = state.data.target
 
-    tasks = []
-    tasks.append(("nmap", lambda: NmapScanner(state).run_all(target)))
+    tasks: list[tuple[str, Any]] = []
+    if not opts.skip_nmap:
+        tasks.append(("nmap", lambda: NmapScanner(state).run_all(target)))
     if not opts.skip_osint:
         tasks.append(("finalrecon", lambda: FinalReconScanner(state).run(target)))
     if not opts.skip_web and not looks_like_ip(target):
         tasks.append(("webfuzz", lambda: WebFuzzer(state).run_all(target)))
+    if not tasks:
+        return {}
 
     status(f"Reconnaissance on {target} — {len(tasks)} collectors")
     with concurrent.futures.ThreadPoolExecutor(max_workers=len(tasks)) as pool:

@@ -13,6 +13,7 @@ from intelforge.domain.state import TargetState
 class ScanOptions:
     """Toggles that select which parts of the pipeline run."""
 
+    skip_nmap: bool = False
     skip_web: bool = False
     skip_osint: bool = False
     skip_llm: bool = False
