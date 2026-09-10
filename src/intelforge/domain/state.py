@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from intelforge.domain.models import CommandResult, PageAnalysis, TargetData
+from intelforge.domain.target import ScanTarget, validate_target
 
 
 class TargetState:
@@ -47,10 +48,22 @@ class TargetState:
 
     # ── mutation ────────────────────────────────────────────────────────────
     def set_target(self, target: str) -> None:
-        self.data.target = target
-        self.data.ip_address = target
+        """Validate, classify and store ``target``.
+
+        Raises :class:`ValueError` when the value is not an IP address,
+        hostname, or http(s) URL (see :func:`intelforge.domain.target`).
+        """
+        scan_target = validate_target(target)
+        self.data.target = scan_target.raw
+        # Only seed ip_address from the target when it is genuinely an IP;
+        # otherwise leave it for the Nmap parser to fill in.
+        self.data.ip_address = scan_target.host if scan_target.is_ip else ""
         self.data.timestamp = datetime.now(UTC).isoformat()
         self.save()
+
+    def target_info(self) -> ScanTarget:
+        """The current target, re-validated and classified for the recon tools."""
+        return validate_target(self.data.target)
 
     def set_field(self, field: str, value: str) -> None:
         if not hasattr(self.data, field):

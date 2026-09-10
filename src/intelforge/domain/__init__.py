@@ -8,12 +8,15 @@ from intelforge.domain.models import (
     TargetData,
 )
 from intelforge.domain.state import TargetState
+from intelforge.domain.target import ScanTarget, validate_target
 
 __all__ = [
     "CommandResult",
     "PageAnalysis",
     "Port",
+    "ScanTarget",
     "Service",
     "TargetData",
     "TargetState",
+    "validate_target",
 ]
