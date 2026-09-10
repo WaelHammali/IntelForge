@@ -100,6 +100,9 @@ class StateManager:
         self.raw_dir    = Path("data/raw")
         self.raw_dir.mkdir(parents=True, exist_ok=True)
         self.data = TargetData()
+        # Commands executed this run, awaiting the CommandOutputCleaner stage.
+        # Each entry: {name, command, purpose, raw_ref}
+        self.pending_commands: list = []
         self.load()
 
     def set_target(self, target: str):
@@ -156,11 +159,38 @@ class StateManager:
 
         self.save()
 
-    def save_raw(self, scanner_name: str, output: str):
-        """Save raw output from a scanner (e.g., nmap XML)"""
+    def save_raw(self, scanner_name: str, output: str) -> str:
+        """Save raw output from a scanner (e.g., nmap XML). Returns the file path."""
         filename = self.raw_dir / f"{scanner_name}_{self.data.target}.txt"
         with open(filename, "w") as f:
             f.write(output)
+        return str(filename)
+
+    def record_command(self, name: str, cmd, purpose: str, raw_output: str) -> str:
+        """Persist a command's raw output and queue it for the CommandOutputCleaner.
+
+        `cmd` may be an argv list or a string. Returns the raw file path.
+        """
+        raw_ref = self.save_raw(name, raw_output)
+        command_str = " ".join(str(c) for c in cmd) if isinstance(cmd, (list, tuple)) else str(cmd)
+        self.pending_commands.append({
+            "name": name,
+            "command": command_str,
+            "purpose": purpose,
+            "raw_ref": raw_ref,
+        })
+        return raw_ref
+
+    def get_command_table(self) -> str:
+        """Human-readable digest of cleaned command outputs, for the Analyst prompt."""
+        lines = []
+        for cr in self.data.command_results:
+            header = cr.purpose or cr.command
+            lines.append(f"### {header}")
+            lines.append(f"$ {cr.command}")
+            lines.append(cr.clean_output.strip() or "(no findings)")
+            lines.append("")
+        return "\n".join(lines).strip()
 
     def get_nmap_summary(self) -> str:
         """Return a concise, human-readable summary of discovered ports and services.
@@ -221,6 +251,7 @@ class StateManager:
             self.data.domains, self.data.subdomains,
             self.data.vhosts, self.data.directories,
             self.data.endpoints, self.data.technologies, self.data.emails,
+            self.data.command_results,
         ])
         if not has_data:
             print(f"\n  {Y}No scan data yet. Run: python dagdig.py scan <target>{RST}\n")
@@ -275,6 +306,17 @@ class StateManager:
                 for pa in self.data.page_analyses
             ]
             _box_table("AI Page Intelligence (Groq)", ["URL / Path", "Access / Auth Level", "Downloadable Files", "Tech & Version"], rows)
+
+        # ── Command Outputs (LLM-cleaned) ────────────────────────────────────
+        if self.data.command_results:
+            def _clip(text, limit=280):
+                flat = " ".join(text.split())
+                return flat if len(flat) <= limit else flat[:limit - 1] + "…"
+            rows = [
+                [cr.purpose or "-", cr.command, _clip(cr.clean_output)]
+                for cr in self.data.command_results
+            ]
+            _box_table("Command Outputs", ["Purpose", "Command", "Cleaned Findings"], rows)
 
         # ── Emails ────────────────────────────────────────────────────────────
         if self.data.emails:
