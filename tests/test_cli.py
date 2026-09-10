@@ -34,3 +34,20 @@ def test_set_and_export_roundtrip(tmp_path: Path, monkeypatch) -> None:
     result = runner.invoke(cli, ["export", "out.json"])
     assert result.exit_code == 0
     assert (tmp_path / "out.json").exists()
+
+
+def test_scan_rejects_injection_target(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("intelforge.config.settings.data_dir", tmp_path / "data")
+    result = CliRunner().invoke(cli, ["scan", "10.10.10.5 --script=http-vuln"])
+    assert result.exit_code != 0
+    assert "invalid target" in result.output
+    assert "Traceback" not in result.output
+
+
+def test_set_unknown_field_exits_nonzero(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("intelforge.config.settings.data_dir", tmp_path / "data")
+    result = CliRunner().invoke(cli, ["set", "not_a_field", "x"])
+    assert result.exit_code != 0
+    assert "unknown state field" in result.output
