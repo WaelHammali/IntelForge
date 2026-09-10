@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
 from click.testing import CliRunner
 
 from intelforge import __version__
-from intelforge.cli import cli
+from intelforge.cli import _repl_dispatch, cli
 
 
 def test_help_lists_commands() -> None:
@@ -51,3 +52,24 @@ def test_set_unknown_field_exits_nonzero(tmp_path: Path, monkeypatch) -> None:
     result = CliRunner().invoke(cli, ["set", "not_a_field", "x"])
     assert result.exit_code != 0
     assert "unknown state field" in result.output
+
+
+@pytest.fixture
+def _repl_env(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("intelforge.config.settings.data_dir", tmp_path / "data")
+
+
+def test_repl_use_updates_current_target(_repl_env: None) -> None:
+    assert _repl_dispatch("use", ["example.com"], "") == "example.com"
+
+
+def test_repl_unknown_command_keeps_current(_repl_env: None) -> None:
+    assert _repl_dispatch("frobnicate", [], "prev.com") == "prev.com"
+
+
+def test_repl_bad_target_raises_clickexception(_repl_env: None) -> None:
+    import click
+
+    with pytest.raises(click.ClickException):
+        _repl_dispatch("use", ["--bad"], "")

@@ -37,6 +37,21 @@ def test_graph_compiles_and_renders() -> None:
     assert "recon --> clean_commands" in mermaid()
 
 
+def test_page_urls_do_not_double_scheme(tmp_path: Path) -> None:
+    state = TargetState(data_dir=tmp_path / "data")
+    state.set_target("http://10.10.10.5")
+    state.data.directories = ["admin", "/uploads"]
+    state.data.subdomains = ["dev.box.htb"]
+
+    urls = graph_nodes._page_urls({"target": state, "options": ScanOptions()})
+
+    assert "http://10.10.10.5" in urls
+    assert "http://10.10.10.5/admin" in urls
+    assert "http://10.10.10.5/uploads" in urls
+    assert "http://dev.box.htb" in urls
+    assert all(u.count("://") == 1 for u in urls)
+
+
 def test_skip_recon_and_llm_reaches_report(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.chdir(tmp_path)
     state = TargetState(data_dir=tmp_path / "data")
