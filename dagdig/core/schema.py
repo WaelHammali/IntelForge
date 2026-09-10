@@ -30,6 +30,37 @@ class Service:
         return self.name == other.name and self.version == other.version
 
 @dataclass
+class CommandResult:
+    """A single executed recon command with its LLM-cleaned output.
+
+    Populated by the CommandOutputCleaner stage: every command run by the
+    framework (Nmap sweeps) or by FinalRecon (split per section) becomes one
+    row of the Command Outputs table that feeds the Analyst.
+    """
+    command: str                 # exact command line that was executed
+    purpose: str = ''            # human label, e.g. "Full TCP port scan"
+    clean_output: str = ''       # noise-stripped findings produced by the LLM cleaner
+    raw_ref: str = ''            # path to the saved raw output under data/raw/
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            'command': self.command,
+            'purpose': self.purpose,
+            'clean_output': self.clean_output,
+            'raw_ref': self.raw_ref,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict) -> 'CommandResult':
+        return cls(
+            command=data.get('command', ''),
+            purpose=data.get('purpose', ''),
+            clean_output=data.get('clean_output', ''),
+            raw_ref=data.get('raw_ref', ''),
+        )
+
+
+@dataclass
 class PageAnalysis:
     url: str
     auth_requirement: str = 'Public'        # 'Public' | 'Registration Page' | 'Auth Required (Login)' | 'Admin Protected'
@@ -123,6 +154,7 @@ class TargetData:
     parameters: List[str] = field(default_factory=list)
     technologies: List[str] = field(default_factory=list)
     page_analyses: List[PageAnalysis] = field(default_factory=list)
+    command_results: List[CommandResult] = field(default_factory=list)
     emails: List[str] = field(default_factory=list)
     notes: str = ''
     timestamp: str = ''
@@ -142,6 +174,7 @@ class TargetData:
             'parameters': self.parameters,
             'technologies': self.technologies,
             'page_analyses': [pa.to_dict() for pa in self.page_analyses],
+            'command_results': [cr.to_dict() for cr in self.command_results],
             'emails': self.emails,
             'notes': self.notes,
             'timestamp': self.timestamp,
@@ -170,6 +203,8 @@ class TargetData:
             td.services.append(Service(**s))
         for pa in data.get('page_analyses', []):
             td.page_analyses.append(PageAnalysis.from_dict(pa))
+        for cr in data.get('command_results', []):
+            td.command_results.append(CommandResult.from_dict(cr))
         return td
 
     def add_port(self, port: Port):
@@ -197,3 +232,11 @@ class TargetData:
     def add_directory(self, dir_path: str):
         if dir_path not in self.directories:
             self.directories.append(dir_path)
+
+    def add_command_result(self, result: 'CommandResult'):
+        """Upsert a cleaned command row, keyed by (command, purpose)."""
+        for i, existing in enumerate(self.command_results):
+            if existing.command == result.command and existing.purpose == result.purpose:
+                self.command_results[i] = result
+                return
+        self.command_results.append(result)
