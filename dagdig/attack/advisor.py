@@ -107,9 +107,12 @@ class WebAttackAdvisor:
             self.tracker.advance(url, "research")
             exploit_report = self.analyzer.research_exploits(analysis)
 
-            # Stage 4: Analyst AI (Final Synthesis with Research Tuples)
+            # Stage 4: Analyst AI (Final Synthesis with Research Tuples + command outputs)
             self.tracker.advance(url, "synthesize")
-            analysis = self.analyzer.synthesize_final_report(analysis, exploit_report)
+            analysis = self.analyzer.synthesize_final_report(
+                analysis, exploit_report,
+                command_summary=self.state.get_command_table(),
+            )
 
             self.tracker.complete(url)
             self._print_analysis_summary(analysis)

@@ -310,20 +310,26 @@ class TripleGroqAnalyzer(DualGroqAnalyzer):
 
     # ── Stage 4: Analyst Final Report Synthesis ───────────────────────────────
 
-    def synthesize_final_report(self, analysis: PageAnalysis, exploit_report: dict) -> PageAnalysis:
+    def synthesize_final_report(
+        self,
+        analysis: PageAnalysis,
+        exploit_report: dict,
+        command_summary: str = "",
+    ) -> PageAnalysis:
         """
-        Stage 4 — The Analyst ingests the Researcher's list of tuples and findings
-        to synthesize the final, comprehensive security assessment.
+        Stage 4 — The Analyst ingests the Researcher's list of tuples and findings,
+        plus the cleaned output of every recon command (Nmap + FinalRecon), to
+        synthesize the final, comprehensive security assessment.
         """
         tuples = exploit_report.get('research_tuples', [])
         analysis.research_tuples = tuples
         analysis.exploit_report = exploit_report
 
-        if not tuples and not exploit_report.get('summary'):
+        if not tuples and not exploit_report.get('summary') and not command_summary:
             return analysis
 
         synthesis_prompt = _get_analyst_synthesis_prompt()
-        
+
         # Build synthesis prompt payload
         prompt_data = {
             "target_url": analysis.url,
@@ -334,7 +340,8 @@ class TripleGroqAnalyzer(DualGroqAnalyzer):
             "injectable_params": analysis.injectable_params,
             "research_tuples_from_researcher": tuples,
             "researcher_attack_order": exploit_report.get('recommended_attack_order', []),
-            "researcher_summary": exploit_report.get('summary', '')
+            "researcher_summary": exploit_report.get('summary', ''),
+            "cleaned_command_outputs": command_summary,
         }
 
         try:
@@ -352,6 +359,17 @@ class TripleGroqAnalyzer(DualGroqAnalyzer):
                 analysis.exploit_report['priority_exploit_vectors'] = synth_data['priority_exploit_vectors']
             if synth_data.get('final_verdict'):
                 analysis.exploit_report['final_verdict'] = synth_data['final_verdict']
+            if synth_data.get('open_services'):
+                analysis.exploit_report['open_services'] = synth_data['open_services']
+            if synth_data.get('access_map'):
+                access_map = synth_data['access_map'] or {}
+                analysis.exploit_report['access_map'] = access_map
+                for p in access_map.get('register_required', []):
+                    if p and p not in analysis.auth_pages:
+                        analysis.auth_pages.append(p)
+                for p in access_map.get('bypass_candidates', []):
+                    if p and p not in analysis.bypass_paths:
+                        analysis.bypass_paths.append(p)
 
         except Exception as e:
             # Fall back gracefully to the existing summary if synthesis fails

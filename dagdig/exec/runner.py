@@ -9,7 +9,7 @@ from core.banner import print_status, print_good, print_warn, print_error
 from .network import NetworkScanner
 from .web import WebFuzzer
 from .osint import OsintScanner
-from llm import TripleGroqAnalyzer, GroqClient
+from llm import TripleGroqAnalyzer, GroqClient, CommandOutputCleaner
 
 class DiscoveryRunner:
     def __init__(self, state: StateManager):
@@ -18,6 +18,7 @@ class DiscoveryRunner:
         self.web = WebFuzzer(state)
         self.osint = OsintScanner(state)
         self.analyzer = TripleGroqAnalyzer(GroqClient())
+        self.command_cleaner = CommandOutputCleaner()
 
     def run_discovery(self, no_web: bool = False, no_llm: bool = False, no_osint: bool = False):
         """Run all nmap scans, web fuzzing tasks, and FinalRecon OSINT in parallel, then optionally run LLM analysis on discovered URLs."""
@@ -51,6 +52,17 @@ class DiscoveryRunner:
                     print_good(f"{name} completed")
                 except Exception as e:
                     print_error(f"{name} failed: {e}")
+
+        # --- Second cleaner: condense every command output ---------------------
+        # Drains state.pending_commands (Nmap sweeps + FinalRecon sections) into
+        # state.data.command_results, which feeds both the Command Outputs table
+        # and the Analyst's final synthesis.
+        try:
+            self.command_cleaner.run(self.state)
+        except Exception as e:
+            print_warn(f"CommandOutputCleaner stage failed: {e}")
+
+        command_summary = self.state.get_command_table()
 
         # --- LLM post‑processing -------------------------------------------------
         if not no_llm and self.analyzer.cleaner_client.is_configured():
@@ -94,7 +106,9 @@ class DiscoveryRunner:
                 for analysis in analyses:
                     try:
                         exploit_report = self.analyzer.research_exploits(analysis, nmap_summary=nmap_summary)
-                        enriched = self.analyzer.synthesize_final_report(analysis, exploit_report)
+                        enriched = self.analyzer.synthesize_final_report(
+                            analysis, exploit_report, command_summary=command_summary
+                        )
                         self.state.add_page_analysis(enriched)
                     except Exception as e:
                         print_warn(f"Research/synthesis failed for {analysis.url}: {e}")
