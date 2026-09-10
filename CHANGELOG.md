@@ -6,6 +6,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [3.1.0] — 2026-09-10
+
 ### Added
 - `ScanTarget` / `validate_target()` — every target is validated and classified
   (IP · hostname · URL) before it can reach a subprocess.
