@@ -57,7 +57,9 @@ class CommandCleaner:
         data = loads(complete(self.model, self.system, user))
         return (data.get("clean_output") or "").strip() or "NONE"
 
-    def _clean_sectioned(self, command: str, purpose: str, raw: str) -> list[tuple[str | None, str]]:
+    def _clean_sectioned(
+        self, command: str, purpose: str, raw: str
+    ) -> list[tuple[str | None, str]]:
         assert self.model is not None
         user = (
             f"COMMAND: {command}\nPURPOSE: {purpose}\nMODE: sectioned\n\n"

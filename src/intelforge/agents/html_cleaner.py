@@ -18,5 +18,7 @@ class HtmlCleaner:
     def clean(self, raw_html: str) -> str:
         if not raw_html or not raw_html.strip():
             return "Empty response"
-        user = f"Clean and structure the following raw HTML content:\n\n{raw_html[:_MAX_HTML_CHARS]}"
+        user = (
+            f"Clean and structure the following raw HTML content:\n\n{raw_html[:_MAX_HTML_CHARS]}"
+        )
         return complete(self.model, self.system, user).strip()

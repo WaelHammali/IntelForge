@@ -88,7 +88,9 @@ class TargetState:
         lines: list[str] = []
         if self.data.open_ports:
             for p in sorted(self.data.open_ports, key=lambda x: (x.protocol, x.number)):
-                lines.append(f"{p.protocol}/{p.number}: {p.service or 'unknown'} {p.version or '-'}")
+                lines.append(
+                    f"{p.protocol}/{p.number}: {p.service or 'unknown'} {p.version or '-'}"
+                )
         if self.data.services:
             lines.append("")
             lines.append("Services:")

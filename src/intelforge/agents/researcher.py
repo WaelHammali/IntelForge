@@ -48,7 +48,9 @@ class Researcher:
         if analysis.upload_points:
             context.append(
                 "Upload endpoints: "
-                + "; ".join(f"{u.get('path', '')} [{u.get('method', '')}]" for u in analysis.upload_points)
+                + "; ".join(
+                    f"{u.get('path', '')} [{u.get('method', '')}]" for u in analysis.upload_points
+                )
             )
         if analysis.injectable_params:
             context.append(

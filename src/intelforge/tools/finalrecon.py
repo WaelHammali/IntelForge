@@ -34,9 +34,22 @@ class FinalReconScanner:
         url = target if target.startswith(("http://", "https://")) else f"http://{target}"
         dump_root = Path(tempfile.mkdtemp(prefix="intelforge_fr_"))
         argv = [
-            sys.executable, str(script), "--url", url,
-            "--headers", "--sslinfo", "--whois", "--dns", "--sub", "--dir", "--wayback",
-            "-nb", "-cd", str(dump_root), "-of", _DUMP_FOLDER,
+            sys.executable,
+            str(script),
+            "--url",
+            url,
+            "--headers",
+            "--sslinfo",
+            "--whois",
+            "--dns",
+            "--sub",
+            "--dir",
+            "--wayback",
+            "-nb",
+            "-cd",
+            str(dump_root),
+            "-of",
+            _DUMP_FOLDER,
         ]
         try:
             output = run_command(

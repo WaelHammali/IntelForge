@@ -13,8 +13,21 @@ from intelforge.console.theme import good, status
 from intelforge.domain.state import TargetState
 
 _FALLBACKS: dict[str, list[str]] = {
-    "directories": ["admin", "api", "assets", "css", "js", "images", "uploads", "config",
-                    "backup", "test", "dev", ".git", "robots.txt"],
+    "directories": [
+        "admin",
+        "api",
+        "assets",
+        "css",
+        "js",
+        "images",
+        "uploads",
+        "config",
+        "backup",
+        "test",
+        "dev",
+        ".git",
+        "robots.txt",
+    ],
     "subdomains": ["www", "mail", "ftp", "webmail", "blog", "dev", "admin", "forum", "vpn"],
     "vhosts": ["www", "dev", "test", "staging", "admin", "api", "app"],
 }
@@ -105,7 +118,9 @@ class WebFuzzer:
             fqdn = f"{vhost}.{host}"
             try:
                 resp = self.session.get(
-                    base, headers={"Host": fqdn}, allow_redirects=False,
+                    base,
+                    headers={"Host": fqdn},
+                    allow_redirects=False,
                     timeout=self.config.request_timeout,
                 )
             except requests.RequestException:

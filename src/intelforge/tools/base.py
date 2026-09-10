@@ -23,9 +23,7 @@ def run_command(
     """
     status(f"{purpose} — running: {' '.join(argv)}")
     try:
-        result = subprocess.run(
-            argv, capture_output=True, text=True, timeout=timeout, check=False
-        )
+        result = subprocess.run(argv, capture_output=True, text=True, timeout=timeout, check=False)
         output = result.stdout or ""
         if combine_stderr and result.stderr:
             output = f"{output}\n{result.stderr}"
