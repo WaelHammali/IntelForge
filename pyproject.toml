@@ -84,6 +84,12 @@ plugins = ["pydantic.mypy"]
 module = ["langgraph.*", "langchain.*", "langchain_core.*"]
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+# LangGraph's StateGraph.add_node overloads do not accept a plain
+# Callable[[State], dict]; the graph is exercised end-to-end in tests instead.
+module = ["intelforge.graph.pipeline"]
+disable_error_code = ["call-overload"]
+
 [tool.pytest.ini_options]
 minversion = "8.0"
 addopts = "-q --strict-markers"
