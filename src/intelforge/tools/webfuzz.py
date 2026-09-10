@@ -11,6 +11,7 @@ import requests
 from intelforge.config import Settings, settings
 from intelforge.console.theme import good, status
 from intelforge.domain.state import TargetState
+from intelforge.tools.http import ensure_url, new_session
 
 _FALLBACKS: dict[str, list[str]] = {
     "directories": [
@@ -43,8 +44,7 @@ class WebFuzzer:
     def __init__(self, state: TargetState, config: Settings = settings) -> None:
         self.state = state
         self.config = config
-        self.session = requests.Session()
-        self.session.verify = False
+        self.session = new_session()
 
     # ── wordlists ──────────────────────────────────────────────────────────
     def _wordlist(self, kind: str) -> list[str]:
@@ -63,7 +63,7 @@ class WebFuzzer:
         return urlparse(target).netloc if "://" in target else target
 
     def _base_url(self, target: str) -> str:
-        return target if "://" in target else f"http://{target}"
+        return ensure_url(target)
 
     # ── fuzzers ────────────────────────────────────────────────────────────
     def fuzz_directories(self, target: str) -> list[str]:

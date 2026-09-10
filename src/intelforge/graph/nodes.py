@@ -18,6 +18,7 @@ from intelforge.config import settings
 from intelforge.console.theme import good, status, warn
 from intelforge.graph.state import GraphState
 from intelforge.tools.finalrecon import FinalReconScanner
+from intelforge.tools.http import new_session
 from intelforge.tools.nmap import NmapScanner
 from intelforge.tools.webfuzz import WebFuzzer
 
@@ -92,10 +93,11 @@ def fetch_pages(gstate: GraphState) -> dict[str, Any]:
         return {"raw_pages": {}}
     urls = _page_urls(gstate)
     status(f"Fetching {len(urls)} page(s)")
+    session = new_session()
     pages: dict[str, str] = {}
     for url in urls:
         try:
-            resp = requests.get(url, timeout=settings.request_timeout, verify=False)
+            resp = session.get(url, timeout=settings.request_timeout)
             pages[url] = resp.text
         except requests.RequestException as exc:
             warn(f"fetch failed {url}: {exc}")

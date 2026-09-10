@@ -69,7 +69,11 @@ def test_full_pipeline_with_fakes(
     class _Resp:
         text = "<html><h1>home</h1></html>"
 
-    monkeypatch.setattr(graph_nodes.requests, "get", lambda *a, **k: _Resp())
+    class _Session:
+        def get(self, *a: object, **k: object) -> _Resp:
+            return _Resp()
+
+    monkeypatch.setattr(graph_nodes, "new_session", lambda: _Session())
 
     result = build_graph().invoke({"target": state, "options": ScanOptions(skip_web=True)})
 
