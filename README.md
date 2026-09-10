@@ -4,6 +4,8 @@
 > *Passive OSINT, multi-threaded network & web discovery, and a collaborative AI
 > analysis pipeline — orchestrated end to end with LangGraph.*
 
+[![CI](https://github.com/WaelHammali/IntelForge/actions/workflows/ci.yml/badge.svg)](https://github.com/WaelHammali/IntelForge/actions/workflows/ci.yml)
+[![CI](https://github.com/WaelHammali/IntelForge/actions/workflows/ci.yml/badge.svg)](https://github.com/WaelHammali/IntelForge/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/Python-3.11%2B-blue.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Orchestration](https://img.shields.io/badge/Orchestration-LangGraph-orange.svg)](https://langchain-ai.github.io/langgraph/)
