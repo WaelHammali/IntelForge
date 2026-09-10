@@ -114,6 +114,7 @@ Interactive console commands mirror the subcommands: `use`, `scan`, `osint`,
 | Setting | Purpose | Default |
 | --- | --- | --- |
 | `INTELFORGE_LLM_CLEANER` / `_ANALYST` / `_RESEARCHER` | model per role | `groq:…` |
+| `INTELFORGE_LLM_TEMPERATURE` / `_LLM_TEMPERATURE_RESEARCHER` | sampling temp (reasoning role needs ~0.6) | `0.1` / `0.6` |
 | `INTELFORGE_LLM_BASE_URL` | OpenAI-compatible gateway | – |
 | `GROQ_API_KEY` / `OPENAI_API_KEY` / … | provider credentials | – |
 | `INTELFORGE_FINALRECON_PATH` | path to `finalrecon.py` | see `.env.example` |

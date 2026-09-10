@@ -47,6 +47,9 @@ class Settings(BaseSettings):
     llm_researcher: str = _DEFAULT_MODELS["llm_researcher"]
     llm_base_url: str | None = None
     llm_temperature: float = 0.1
+    # Distilled DeepSeek-R1 loops and truncates its reasoning at very low
+    # temperatures; Groq/DeepSeek recommend ~0.6 for the reasoning role.
+    llm_temperature_researcher: float = 0.6
 
     # ── Tools ──────────────────────────────────────────────────────────────
     finalrecon_path: Path = Path("/home/themangahacker/FinalRecon/finalrecon.py")
@@ -75,6 +78,11 @@ class Settings(BaseSettings):
             "analyst": self.llm_analyst,
             "researcher": self.llm_researcher,
         }[role]
+
+    def role_temperature(self, role: str) -> float:
+        if role == "researcher":
+            return self.llm_temperature_researcher
+        return self.llm_temperature
 
 
 @lru_cache(maxsize=1)

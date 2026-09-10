@@ -35,3 +35,9 @@ def test_legacy_ignored_when_modern_var_set(monkeypatch: pytest.MonkeyPatch) -> 
 def test_role_model_lookup() -> None:
     s = Settings(_env_file=None, llm_analyst="groq:x")
     assert s.role_model("analyst") == "groq:x"
+
+
+def test_researcher_runs_hotter_than_the_cleaners() -> None:
+    s = Settings(_env_file=None)
+    assert s.role_temperature("researcher") > s.role_temperature("cleaner")
+    assert s.role_temperature("analyst") == s.llm_temperature

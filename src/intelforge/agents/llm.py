@@ -22,7 +22,7 @@ def chat_model(role: Role) -> BaseChatModel:
     provider ``init_chat_model`` supports works without code changes.
     """
     spec = settings.role_model(role)
-    kwargs: dict[str, Any] = {"temperature": settings.llm_temperature}
+    kwargs: dict[str, Any] = {"temperature": settings.role_temperature(role)}
     if settings.llm_base_url:
         kwargs["base_url"] = settings.llm_base_url
     return init_chat_model(spec, **kwargs)
