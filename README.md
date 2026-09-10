@@ -1,205 +1,159 @@
-# IntelForge Scanning Framework ⚡
+# IntelForge ⚡
 ### Autonomous Penetration Testing & Reconnaissance AI Engine
-> **Keystone Groupe, Tunisia · AI and CyberSecurity Project 2026**  
-> *An end-to-end automated security framework combining passive OSINT, multi-threaded network & web discovery, and a 4-stage reasoning AI pipeline powered by Groq LLMs and DeepSeek R1.*
+> **Keystone Groupe, Tunisia · AI and CyberSecurity Project 2026**
+> *Passive OSINT, multi-threaded network & web discovery, and a collaborative AI
+> analysis pipeline — orchestrated end to end with LangGraph.*
 
-[![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/Python-3.11%2B-blue.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![AI Engine](https://img.shields.io/badge/AI%20Engine-Groq%20%7C%20DeepSeek%20R1-orange.svg)](https://groq.com)
-[![OSINT Integration](https://img.shields.io/badge/OSINT-FinalRecon-red.svg)](https://github.com/thewhiteh4t/FinalRecon)
-[![Organization](https://img.shields.io/badge/Organization-Keystone%20Groupe%2C%20Tunisia-brightgreen.svg)]()
+[![Orchestration](https://img.shields.io/badge/Orchestration-LangGraph-orange.svg)](https://langchain-ai.github.io/langgraph/)
+[![OSINT](https://img.shields.io/badge/OSINT-FinalRecon-red.svg)](https://github.com/thewhiteh4t/FinalRecon)
 
 ---
 
-## 📌 Executive Overview
+## Overview
 
-**IntelForge** is an autonomous penetration testing and intelligence framework built to eliminate manual enumeration bottlenecks during security assessments, CTFs, and Red Team operations.
+IntelForge removes the manual enumeration bottleneck in security assessments, CTFs
+and Red Team operations. It runs the recon collectors, condenses every tool's raw
+output with an LLM, and then walks a fixed chain of AI "members" — **Cleaner →
+Analyst → Researcher → Analyst (synthesis)** — to turn discovery into a structured,
+prioritised exploit-intelligence report.
 
-It combines **passive OSINT harvesting** (FinalRecon — WHOIS, DNS, SSL/TLS, Wayback Machine, headers), **active network discovery** (Nmap TCP/UDP, web directory, subdomain & vhost fuzzing), and a **4-Stage Collaborative AI Pipeline** (powered by Groq LLMs and DeepSeek R1 reasoning). 
-
-IntelForge automatically transitions from target discovery to structured exploit intelligence reports, drastically reducing manual enumeration time.
+The whole flow is a compiled **LangGraph `StateGraph`**: every step is an explicit
+node, the shared `TargetState` is the bus between them, and the diagram below is
+generated from the running graph (`intelforge graph`).
 
 ```mermaid
-flowchart TD
-    Target[Target Domain / IP] -->|Parallel Execution| OSINT[Passive OSINT Engine\nFinalRecon]
-    Target -->|Parallel Execution| ActiveScan[Active Recon Engine\nNmap TCP/UDP]
-    Target -->|Parallel Execution| WebFuzz[Web Fuzzer\nDirs, Subs, VHosts]
-
-    OSINT -->|Extracts Subdomains, Dirs, Headers, Emails| StateManager[Centralized State Manager\nTargetData]
-    ActiveScan -->|Extracts Ports & Services| StateManager
-    WebFuzz -->|Extracts Paths & Endpoints| StateManager
-
-    StateManager -->|Raw command output| CmdCleaner[Command Output Cleaner AI\nCondenses every Nmap & FinalRecon command\ninto a Command Outputs table]
-    CmdCleaner --> StateManager
-
-    StateManager -->|Discovered URLs & Service Banners| AI_Stage1[Stage 1: HTML Cleaner AI\nStrips noise & formats HTML]
-    AI_Stage1 --> AI_Stage2[Stage 2: Analyst AI\nAttack surface & suspicious items]
-    AI_Stage2 --> AI_Stage3[Stage 3: Researcher AI\nDeepSeek R1 Vulnerability & CVE Research]
-    AI_Stage3 --> AI_Stage4[Stage 4: Analyst AI\nFinal Exploit Report Synthesis]
-    CmdCleaner -->|Cleaned command digest| AI_Stage4
-
-    AI_Stage4 --> Output[Structured JSON Exploit Report & Tabular UI\nports table + access map]
+graph TD;
+	__start__([start]):::first
+	recon(recon · nmap + FinalRecon + web fuzz, parallel)
+	clean_commands(clean_commands · LLM condenses every command)
+	fetch_pages(fetch_pages · HTTP GET discovered URLs)
+	clean_html(clean_html · Stage 1 Cleaner)
+	analyst(analyst · Stage 2 attack surface)
+	research(research · Stage 3 CVE research + Stage 4 synthesis)
+	report(report · JSON + tables)
+	__end__([end]):::last
+	__start__ --> recon;
+	recon --> clean_commands;
+	clean_commands -.->|"--no-llm"| report;
+	clean_commands -.-> fetch_pages;
+	fetch_pages --> clean_html;
+	clean_html --> analyst;
+	analyst --> research;
+	research --> report;
+	report --> __end__;
+	classDef first fill-opacity:0
+	classDef last fill:#bfb6fc
 ```
 
 ---
 
-## 🚀 Key Capabilities
+## Capabilities
 
-- 🔍 **Passive OSINT Harvesting (FinalRecon Integration)**:
-  - Header inspection & security policy verification.
-  - SSL/TLS certificate chain & Subject Alternative Name (SAN) extraction.
-  - DNS record enumeration (A, AAAA, MX, TXT, NS, SOA, DNSKEY).
-  - WHOIS registrar & registrant contact discovery.
-  - Historical endpoint harvesting via Wayback Machine.
-- 🎯 **Active Network Reconnaissance**:
-  - Multi-threaded full TCP (`-sS -sC -sV`) and UDP top-port discovery with `nmap`.
-  - Automatic service banner grabbing and version detection.
-- 🌐 **Web Attack Surface Fuzzing**:
-  - Directory enumeration, subdomain mapping, and HTTP host header (`VHost`) discovery.
-  - Automated fallback wordlist logic and SecLists integration.
-- 🧹 **Command Output Cleaner AI**:
-  - Second cleaner in the pipeline, pointed at CLI output instead of HTML.
-  - Condenses the raw output of every executed command (Nmap TCP/UDP sweeps, and each FinalRecon section — headers, WHOIS, DNS, SSL, subdomains, directories, wayback) into one **Command Outputs** table: `Purpose | Command | Cleaned Findings`.
-  - The cleaned digest is handed to the Analyst's final synthesis alongside the research tuples.
-- 🧠 **4-Stage Collaborative AI Reasoning Engine**:
-  - **Stage 1 — Cleaner AI**: Strips heavy CSS/JS noise, producing clean, structured page DOMs.
-  - **Stage 2 — Analyst AI (Intel)**: Maps upload points, query parameters, bypass endpoints, and identifies suspicious keywords.
-  - **Stage 3 — Researcher AI (DeepSeek R1)**: Queries DeepSeek R1 reasoning engine to research CVEs, payload techniques, and pentest relevance.
-  - **Stage 4 — Analyst AI (Synthesis)**: Ingests all research tuples **plus the cleaned command outputs** and generates a prioritized, actionable **Exploit Intelligence Plan** — including an open-services table and an access map (`register_required` vs `bypass_candidates`).
-- 📊 **Dynamic State Management & Visualization**:
-  - Real-time Metasploit-style console REPL with colored Unicode box tables.
-  - Exportable structured JSON reports for hand-off to Red Teams or automated tools.
+- **Passive OSINT (FinalRecon)** — headers, SSL/TLS, DNS, WHOIS, subdomains,
+  directories, Wayback endpoints, emails.
+- **Active recon (Nmap)** — configurable TCP/UDP profiles, service/version
+  detection, XML parsed into typed `Port` / `Service` records.
+- **Web fuzzing** — directories (threaded HTTP), subdomains (`dig`), vhosts (Host
+  header); skipped automatically for a bare IP.
+- **Command Output Cleaner** — the second cleaner, pointed at CLI output. Each
+  Nmap sweep becomes one row; FinalRecon is fanned into per-section rows. Produces
+  the `Purpose | Command | Cleaned Findings` table and a digest fed to the Analyst.
+- **AI members**
+  - *Cleaner* — strips HTML noise to structured text.
+  - *Analyst (Stage 2)* — maps upload points, injectable params, bypass paths,
+    auth pages and suspicious keywords.
+  - *Researcher (Stage 3)* — a reasoning model researches CVEs, techniques and
+    tools per finding and per Nmap service version.
+  - *Analyst (Stage 4)* — synthesises the research tuples + command digest into a
+    final report with an open-services table and an access map
+    (`register_required` vs `bypass_candidates`).
+- **Provider-agnostic LLMs** — each role is a `provider:model` string
+  (`groq:…`, `openai:…`, `google_genai:…`, or any OpenAI-compatible gateway) via
+  LangChain's `init_chat_model`.
 
 ---
 
-## 🛠️ Installation & Setup
+## Install
 
-### Prerequisites
-IntelForge is designed for Linux environments (Kali Linux, Parrot OS, Ubuntu/Debian):
-- **Python**: 3.10 or higher
-- **Nmap**: `sudo apt install -y nmap`
-- **Figlet**: `sudo apt install -y figlet` *(for dynamic colored ASCII banners)*
-- **Wordlists**: `seclists`, `dirb`, or built-in fallbacks
+Linux (Kali / Parrot / Debian / Ubuntu). Requires **Python 3.11–3.13**, plus
+`nmap` (`sudo apt install -y nmap`) and, optionally, `figlet` and a FinalRecon
+checkout.
 
-### 1. Clone Repository & Setup
 ```bash
 git clone https://github.com/WaelHammali/Pentest_Command_DAGDIG.git intelforge
 cd intelforge
-chmod +x dagdig/scripts/setup.sh
-./dagdig/scripts/setup.sh
-```
-
-*(Or manual setup:)*
-```bash
-python3 -m venv venv
-source venv/bin/activate
-pip install -r dagdig/requirements.txt
-```
-
-### 2. Configure API Keys
-Copy `.env.example` and set your Groq API key:
-```bash
-cp dagdig/.env.example dagdig/.env
-```
-Edit `dagdig/.env`:
-```ini
-GROQ_API_KEY=gsk_your_groq_api_key_here
-# Optional secondary/tertiary keys for parallel LLM stages:
-# GROQ_API_KEY_2=gsk_...
-# GROQ_API_KEY_3=gsk_...
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"          # drop [dev] for a runtime-only install
+cp .env.example .env             # then set GROQ_API_KEY (or another provider)
 ```
 
 ---
 
-## 📖 Usage Guide
+## Usage
 
-IntelForge can be executed via interactive console or CLI subcommands using `intelforge.py` or `dagdig.py`:
-
-### 1. Interactive Metasploit-Style Shell
-Launch the console with live prompts:
 ```bash
-python intelforge.py
-```
-Inside console:
-```text
-intelforge > use 10.10.11.x
-intelforge 10.10.11.x > scan
-intelforge 10.10.11.x > show
-intelforge 10.10.11.x > webanalyze
+intelforge                       # interactive console
+intelforge scan 10.10.11.20      # full pipeline
+intelforge scan 10.10.11.20 --no-web --no-osint --no-llm
+intelforge osint example.com     # passive OSINT only (FinalRecon + cleaner)
+intelforge webanalyze http://10.10.11.20/   # AI web analysis, no recon
+intelforge show                  # render the stored state
+intelforge export report.json
+intelforge graph                 # print the pipeline diagram
 ```
 
-### 2. Full Target Scan (Nmap + Fuzzing + FinalRecon OSINT + AI Analysis)
-Run parallel discovery and LLM intelligence pipeline:
-```bash
-python intelforge.py scan 10.10.11.x
+Interactive console commands mirror the subcommands: `use`, `scan`, `osint`,
+`webanalyze`, `show`, `set`, `export`, `graph`, `clear`, `banner`, `help`, `exit`.
+
+### Configuration (`.env` / environment, prefix `INTELFORGE_`)
+
+| Setting | Purpose | Default |
+| --- | --- | --- |
+| `INTELFORGE_LLM_CLEANER` / `_ANALYST` / `_RESEARCHER` | model per role | `groq:…` |
+| `INTELFORGE_LLM_BASE_URL` | OpenAI-compatible gateway | – |
+| `GROQ_API_KEY` / `OPENAI_API_KEY` / … | provider credentials | – |
+| `INTELFORGE_FINALRECON_PATH` | path to `finalrecon.py` | see `.env.example` |
+| `INTELFORGE_REQUEST_TIMEOUT` / `_FUZZ_THREADS` / `_SCAN_TIMEOUT` | tuning | `10` / `20` / `600` |
+| `INTELFORGE_DATA_DIR` / `_WORDLIST_DIR` | output & wordlist roots | `data` / `wordlists` |
+
+Legacy `GROQ_MODEL` / `GROQ_MODEL_2` / `GROQ_MODEL_3` are still honoured when the
+matching `INTELFORGE_LLM_*` variable is unset.
+
+---
+
+## Project layout
+
 ```
-*Options:*
-- `--no-web`: Skip web directory/subdomain fuzzing.
-- `--no-osint`: Skip FinalRecon OSINT harvesting.
-
-### 3. Standalone FinalRecon OSINT Scan
-Run deep passive OSINT on a target domain:
-```bash
-python intelforge.py osint example.com
-```
-
-### 4. Deep Web Attack Surface Analysis (`webanalyze`)
-Execute 4-stage AI analysis directly on a web target:
-```bash
-python intelforge.py webanalyze http://10.10.11.x/
-```
-
-### 5. View State & Export Results
-```bash
-# Display formatted Unicode box tables of discovered ports, paths & vulnerabilities
-python intelforge.py show
-
-# Export current session state to JSON
-python intelforge.py export results.json
+pyproject.toml                 # packaging, deps, ruff / mypy / pytest config
+src/intelforge/
+├── cli.py                     # click subcommands + interactive console
+├── config.py                  # pydantic-settings Settings
+├── console/                   # Rich theme, banner, result tables
+├── domain/                    # models.py (Pydantic) + state.py (TargetState)
+├── tools/                     # nmap · finalrecon · webfuzz + run_command
+├── agents/                    # llm · html_cleaner · command_cleaner · analyst · researcher
+├── graph/                     # state · nodes · pipeline (the LangGraph StateGraph)
+├── reporting/                 # JSON report writer
+└── prompts/                   # system-prompt templates
+tests/                         # models, state, config, tools, agents, graph, cli
 ```
 
 ---
 
-## 📂 Project Architecture
+## Development
 
-```
-intelforge/
-├── intelforge.py                 # Root CLI launcher script
-├── dagdig.py                     # Legacy / alternative entrypoint
-├── README.md                     # Framework documentation
-└── dagdig/                       # Main package directory
-    ├── dagdig.py                 # Core CLI entrypoint & interactive REPL
-    ├── core/                     # Core state engine & UI renderer
-    │   ├── schema.py             # TargetData, PageAnalysis & CommandResult models
-    │   ├── state.py              # State persistence manager
-    │   └── banner.py             # ASCII banner & terminal formatting
-    ├── exec/                     # Execution modules
-    │   ├── network.py            # Nmap TCP/UDP scanner
-    │   ├── web.py                # Directory, subdomain & vhost fuzzer
-    │   ├── osint.py              # FinalRecon OSINT wrapper
-    │   └── runner.py             # Parallel discovery coordinator
-    ├── llm/                      # AI Engines & Multi-Stage Bridge
-    │   ├── client.py             # Groq API client interface
-    │   ├── output_cleaner.py     # CommandOutputCleaner (second cleaner: CLI output)
-    │   └── llm_bridge.py         # DualGroq & TripleGroq AI Analyzers
-    ├── attack/                   # Attack planning & tracking
-    │   ├── tracker.py            # Real-time pipeline status tracker
-    │   └── advisor.py            # WebAttackAdvisor orchestration
-    ├── prompts/                  # Cleaner, analyst, research & command_clean prompt templates
-    ├── data/                     # Output directory for JSON reports & raw logs
-    └── scripts/
-        └── setup.sh              # Automated environment setup script
+```bash
+ruff check src tests
+mypy src
+pytest
 ```
 
 ---
 
-## 🏢 About Keystone Groupe
+## Disclaimer
 
-Developed as part of the **AI and CyberSecurity Project 2026** at **Keystone Groupe, Tunisia**.  
-IntelForge bridges traditional offensive security tools with state-of-the-art AI reasoning to automate vulnerability discovery and threat modeling.
-
----
-
-## ⚖️ Disclaimer
-
-IntelForge is intended strictly for authorized security assessments, educational purposes, CTF competitions, and penetration testing on systems with explicit written consent. Unauthorized scanning of third-party infrastructure is strictly illegal.
+For authorised security assessments, education, CTFs and penetration testing with
+explicit written consent only. Unauthorised scanning of third-party infrastructure
+is illegal.
