@@ -66,7 +66,11 @@ class OsintScanner:
                 timeout=300
             )
             raw_stdout = (result.stdout or "") + "\n" + (result.stderr or "")
-            self.state.save_raw("osint_finalrecon", raw_stdout)
+            self.state.record_command(
+                "osint_finalrecon", cmd,
+                "FinalRecon OSINT (headers, sslinfo, whois, dns, sub, dir, wayback)",
+                raw_stdout,
+            )
 
             # Parse console output
             self._parse_stdout(raw_stdout)

@@ -61,7 +61,7 @@ def start_shell(state: StateManager):
             print(f"  {G}use <target>{RST}              Set current target IP address or domain for session")
             print(f"  {G}scan [target]{RST}             Run full reconnaissance scan (nmap + web fuzzing + FinalRecon OSINT)")
             print(f"  {G}osint [target]{RST}            Run standalone FinalRecon OSINT scan")
-            print(f"  {G}show{RST}                      Display current scan results in Unicode box tables")
+            print(f"  {G}show{RST}                      Display current scan results (incl. cleaned Command Outputs table)")
             print(f"  {G}analyze{RST}                   Basic Dual-Groq AI page analysis")
             print(f"  {G}webanalyze [url]{RST}          {Y}3-Stage deep CTF recon: clean→intel→exploit research{RST}")
             print(f"  {G}set <field> <val>{RST}         Manually populate a state field/cell")
@@ -104,8 +104,13 @@ def start_shell(state: StateManager):
             current_target = target
             state.set_target(target)
             from exec.osint import OsintScanner
+            from llm import CommandOutputCleaner
             osint_scanner = OsintScanner(state)
             osint_scanner.run_osint(target)
+            try:
+                CommandOutputCleaner().run(state)
+            except Exception as e:
+                print_warn(f"CommandOutputCleaner failed: {e}")
             print_good("OSINT scan complete. Run 'show' to view results.")
 
         elif cmd == "show":
@@ -334,8 +339,13 @@ def osint(ctx, target):
     state = ctx.obj['state']
     state.set_target(target)
     from exec.osint import OsintScanner
+    from llm import CommandOutputCleaner
     osint_scanner = OsintScanner(state)
     osint_scanner.run_osint(target)
+    try:
+        CommandOutputCleaner().run(state)
+    except Exception as e:
+        print_warn(f"CommandOutputCleaner failed: {e}")
     print_good("OSINT scan complete. Run 'show' to view results.")
 
 

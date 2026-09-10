@@ -29,12 +29,16 @@ flowchart TD
     ActiveScan -->|Extracts Ports & Services| StateManager
     WebFuzz -->|Extracts Paths & Endpoints| StateManager
 
+    StateManager -->|Raw command output| CmdCleaner[Command Output Cleaner AI\nCondenses every Nmap & FinalRecon command\ninto a Command Outputs table]
+    CmdCleaner --> StateManager
+
     StateManager -->|Discovered URLs & Service Banners| AI_Stage1[Stage 1: HTML Cleaner AI\nStrips noise & formats HTML]
     AI_Stage1 --> AI_Stage2[Stage 2: Analyst AI\nAttack surface & suspicious items]
     AI_Stage2 --> AI_Stage3[Stage 3: Researcher AI\nDeepSeek R1 Vulnerability & CVE Research]
     AI_Stage3 --> AI_Stage4[Stage 4: Analyst AI\nFinal Exploit Report Synthesis]
+    CmdCleaner -->|Cleaned command digest| AI_Stage4
 
-    AI_Stage4 --> Output[Structured JSON Exploit Report & Tabular UI]
+    AI_Stage4 --> Output[Structured JSON Exploit Report & Tabular UI\nports table + access map]
 ```
 
 ---
@@ -53,11 +57,15 @@ flowchart TD
 - 🌐 **Web Attack Surface Fuzzing**:
   - Directory enumeration, subdomain mapping, and HTTP host header (`VHost`) discovery.
   - Automated fallback wordlist logic and SecLists integration.
+- 🧹 **Command Output Cleaner AI**:
+  - Second cleaner in the pipeline, pointed at CLI output instead of HTML.
+  - Condenses the raw output of every executed command (Nmap TCP/UDP sweeps, and each FinalRecon section — headers, WHOIS, DNS, SSL, subdomains, directories, wayback) into one **Command Outputs** table: `Purpose | Command | Cleaned Findings`.
+  - The cleaned digest is handed to the Analyst's final synthesis alongside the research tuples.
 - 🧠 **4-Stage Collaborative AI Reasoning Engine**:
   - **Stage 1 — Cleaner AI**: Strips heavy CSS/JS noise, producing clean, structured page DOMs.
   - **Stage 2 — Analyst AI (Intel)**: Maps upload points, query parameters, bypass endpoints, and identifies suspicious keywords.
   - **Stage 3 — Researcher AI (DeepSeek R1)**: Queries DeepSeek R1 reasoning engine to research CVEs, payload techniques, and pentest relevance.
-  - **Stage 4 — Analyst AI (Synthesis)**: Ingests all research tuples and generates a prioritized, actionable **Exploit Intelligence Plan**.
+  - **Stage 4 — Analyst AI (Synthesis)**: Ingests all research tuples **plus the cleaned command outputs** and generates a prioritized, actionable **Exploit Intelligence Plan** — including an open-services table and an access map (`register_required` vs `bypass_candidates`).
 - 📊 **Dynamic State Management & Visualization**:
   - Real-time Metasploit-style console REPL with colored Unicode box tables.
   - Exportable structured JSON reports for hand-off to Red Teams or automated tools.
@@ -162,7 +170,7 @@ intelforge/
 └── dagdig/                       # Main package directory
     ├── dagdig.py                 # Core CLI entrypoint & interactive REPL
     ├── core/                     # Core state engine & UI renderer
-    │   ├── schema.py             # TargetData & PageAnalysis models
+    │   ├── schema.py             # TargetData, PageAnalysis & CommandResult models
     │   ├── state.py              # State persistence manager
     │   └── banner.py             # ASCII banner & terminal formatting
     ├── exec/                     # Execution modules
@@ -172,11 +180,12 @@ intelforge/
     │   └── runner.py             # Parallel discovery coordinator
     ├── llm/                      # AI Engines & Multi-Stage Bridge
     │   ├── client.py             # Groq API client interface
+    │   ├── output_cleaner.py     # CommandOutputCleaner (second cleaner: CLI output)
     │   └── llm_bridge.py         # DualGroq & TripleGroq AI Analyzers
     ├── attack/                   # Attack planning & tracking
     │   ├── tracker.py            # Real-time pipeline status tracker
     │   └── advisor.py            # WebAttackAdvisor orchestration
-    ├── prompts/                  # Stage 1, 2, and 3 prompt templates
+    ├── prompts/                  # Cleaner, analyst, research & command_clean prompt templates
     ├── data/                     # Output directory for JSON reports & raw logs
     └── scripts/
         └── setup.sh              # Automated environment setup script
