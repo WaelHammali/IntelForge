@@ -59,9 +59,6 @@ Changelog = "https://github.com/WaelHammali/IntelForge/blob/main/CHANGELOG.md"
 packages = ["src/intelforge"]
 artifacts = ["src/intelforge/py.typed"]
 
-[tool.hatch.build.targets.wheel.force-include]
-"src/intelforge/prompts" = "intelforge/prompts"
-
 [tool.ruff]
 line-length = 100
 target-version = "py311"
